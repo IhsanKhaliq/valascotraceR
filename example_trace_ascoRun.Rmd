@@ -69,7 +69,7 @@ ex_asco <-
       primary_infection_intensity = 100
     )
     
-    save(ex_at, file = "ascotraceR_ta1.rda")
+    save(ex_at, file = "ascotraceR_exOut.rda")
     T2 <- Sys.time()
     T2 - T1
   }, stdout = "tmp/ExampleOut_ta",
@@ -82,7 +82,7 @@ processx::poll(list(ex_asco), 1000)
 ```
 
 ```{r load_file}
-load("ascotraceR_ta1.rda")
+load("ascotraceR_exOut.rda")
 ```
 
 ```{r}
