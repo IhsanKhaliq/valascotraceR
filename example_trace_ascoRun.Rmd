@@ -98,5 +98,11 @@ plot(ex_at[[137]][["paddock"]][x == 10, infectious_gp] / 40,
      ylab = "infectious_gp",
      xlab = "(y) columns",
      main = "infectious_gp per plant")
+
+# cross section plot at row 10 (x == 10)
+plot(ta1[[137]][["paddock"]][x == 10, infectious_gp/(infectious_gp + susceptible_gp)] / 40,
+     ylab = "infectious_gp",
+     xlab = "(y) columns",
+     main = "percentage infectious_gp per plant")
 ```
 
