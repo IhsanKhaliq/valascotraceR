@@ -1,0 +1,102 @@
+---
+title: "Example_run"
+author: "Dr. Paul Melloy"
+date: "06/08/2021"
+output: html_document
+---
+
+```{r load_libraries}
+library(ascotraceR)
+library(data.table)
+library(callr)
+```
+
+Import example weather data
+```{r import_weather}
+Newmarracarra <-
+   fread(system.file("extdata",
+            "1998_Newmarracarra_weather_table.csv", package = "ascotraceR"))
+```
+
+
+First we run the model based on what we discussed.
+I am going to run this in a background process using the package callr.
+This frees up the console to continue work while we wait for the model.
+```{r trace_asco}
+ex_asco <- 
+  r_bg(function() {
+    T1 <- Sys.time()
+    library(ascotraceR)
+    
+    Newmarracarra <-
+      data.table::fread(
+        system.file(
+          "extdata",
+          "1998_Newmarracarra_weather_table.csv",
+          package = "ascotraceR"
+        )
+      )
+    station_data <-
+      system.file("extdata", "stat_dat.csv", package = "ascotraceR")
+    
+    Newmarracarra <- format_weather(
+      x = Newmarracarra,
+      POSIXct_time = "Local.Time",
+      temp = "mean_daily_temp",
+      ws = "ws",
+      wd_sd = "wd_sd",
+      rain = "rain_mm",
+      wd = "wd",
+      station = "Location",
+      time_zone = "Australia/Perth",
+      lonlat_file = station_data
+    )
+    
+
+    
+    ex_at <- trace_asco(
+      weather = Newmarracarra,
+      paddock_length = 20,
+      paddock_width = 20,
+      initial_infection = as.POSIXct("1998-06-04") + lubridate::ddays(30),
+      sowing_date = as.POSIXct("1998-06-09"),
+      harvest_date = as.POSIXct("1998-06-09") + lubridate::ddays(135) ,
+      time_zone = "Australia/Perth",
+      seeding_rate = 40,
+      gp_rr = 0.0065,
+      spores_per_gp_per_wet_hour = 0.22,
+      latent_period_cdd = 150,
+      primary_infection_intensity = 100
+    )
+    
+    save(ex_at, file = "ascotraceR_ta1.rda")
+    T2 <- Sys.time()
+    T2 - T1
+  }, stdout = "tmp/ExampleOut_ta",
+  stderr = "tmp/ExampleError_ta")
+```
+
+```{r check_process}
+ex_asco$is_alive()
+processx::poll(list(ex_asco), 1000)
+```
+
+```{r load_file}
+load("ascotraceR_ta1.rda")
+```
+
+```{r}
+tracer_plot(ta1, 137)
+
+# cross section plot at row 10 (x == 10)
+plot(ex_at[[137]][["paddock"]][x == 10, infectious_gp],
+     ylab = "infectious_gp",
+     xlab = "(y) columns")
+
+# cross section plot at row 10 (x == 10)
+plot(ex_at[[137]][["paddock"]][x == 10, infectious_gp] / 40,
+     ylab = "infectious_gp",
+     xlab = "(y) columns",
+     main = "infectious_gp per plant")
+```
+
