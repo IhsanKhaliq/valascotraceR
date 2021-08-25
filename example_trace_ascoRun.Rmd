@@ -100,45 +100,70 @@ tracer_plot(billa, 147)
 
 plot cross sections of the paddock
 ```{r}
+# plot the output of all models with the blue line showing the mean
 # cross section plot at row 10 (x == 10)
-plot(billa[[147]][["paddock"]][x == 10, infectious_gp],
-     ylab = "infectious_gp",
-     xlab = "(y) columns",
-     type = "l")
+plot(
+  apply(as.data.frame(lapply(billa, function(x) {
+    x[[147]][["paddock"]][x == 10, infectious_gp]
+  })), 1, mean),
+  ylab = "infectious_gp",
+  xlab = "(y) columns",
+  type = "l",
+  lwd = 2,
+  col = "blue"
+)
+lines(billa[[1]][[147]][["paddock"]][x == 10, infectious_gp], col = "grey20")
+lines(billa[[2]][[147]][["paddock"]][x == 10, infectious_gp], col = "grey20")
+lines(billa[[3]][[147]][["paddock"]][x == 10, infectious_gp], col = "grey20")
+lines(billa[[4]][[147]][["paddock"]][x == 10, infectious_gp], col = "grey20")
 
-# cross section plot at row 10 (x == 10)
-plot(billa[[147]][["paddock"]][x == 10, infectious_gp] / 40,
-     ylab = "infectious_gp",
-     xlab = "(y) columns",
-     main = "infectious_gp per plant",
-     type = "l")
-
-# cross section plot at row 10 (x == 10)
-plot(billa[[147]][["paddock"]][x == 10, infectious_gp/(infectious_gp + susceptible_gp)] / 40,
-     ylab = "infectious_gp",
-     xlab = "(y) columns",
-     main = "percentage infectious_gp per plant",
-     type = "l")
+# # cross section plot at row 10 (x == 10)
+# plot(billa[[147]][["paddock"]][x == 10, infectious_gp] / 40,
+#      ylab = "infectious_gp",
+#      xlab = "(y) columns",
+#      main = "infectious_gp per plant",
+#      type = "l")
+# 
+# # cross section plot at row 10 (x == 10)
+# plot(billa[[147]][["paddock"]][x == 10, infectious_gp/(infectious_gp + susceptible_gp)] / 40,
+#      ylab = "infectious_gp",
+#      xlab = "(y) columns",
+#      main = "percentage infectious_gp per plant",
+#      type = "l")
 ```
 
 Plot the increase in disease over time as the proportion of infected plots
 ```{r}
 prop_infect <-
-  unlist(lapply(billa, function(x) {
-    nrow(x$infected_coords) / nrow(x$paddock)
+  rbindlist(lapply(billa[[1]], function(x) {
+    data.frame(date = x$i_date,
+               p_inf = nrow(x$infected_coords) / nrow(x$paddock))
   }))
 
-plot(prop_infect, type = "l", xlab = "days")
+
 ```
 
 Import field observations
 ```{r}
 obs_dat <- setDT(readxl::read_xlsx("data/field_experiment_data.xlsx"))
+```
 
-obs_dat[,assessment_date := lubridate::dmy(assessment_date)]
+```{r}
+obs_billa <-
+  obs_dat[location == "Billa Billa", sum(infected_plants > 0) /
+            .N, by = .(location, assessment_date, plot_number)]
+
+plot(obs_billa[location == "Billa Billa", mean(V1), by = assessment_date],
+     type = "l",
+     col = "blue",
+     lwd = 2)
+lines(prop_infect, type = "l", 
+      col = "brown",
+      lwd = 2)
 ```
 
 
+Now to subset the data to Billa Billa and calculate the proportion of infected quadrants.
 
 
 ## Tosari
