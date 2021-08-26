@@ -155,13 +155,15 @@ obs_billa <-
 
 plot(obs_billa[location == "Billa Billa", mean(V1), by = assessment_date],
      pch = 16,
-     col = "blue",
-     lwd = 2)
+#     col = "blue",
+     lwd = 2,
+     ylab = "Disease progress",
+     xlab = "")
 lines(obs_billa[location == "Billa Billa", mean(V1), by = assessment_date],
-     col = "blue",
-     lwd = 2)
+     #col = "blue",
+     lwd = 1)
 lines(prop_infect,
-      col = "brown",
+      #col = "brown",
       lwd = 2)
 ```
 
