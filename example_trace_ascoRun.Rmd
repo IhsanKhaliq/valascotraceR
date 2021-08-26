@@ -154,10 +154,13 @@ obs_billa <-
             .N, by = .(location, assessment_date, plot_number)]
 
 plot(obs_billa[location == "Billa Billa", mean(V1), by = assessment_date],
-     type = "l",
+     pch = 16,
      col = "blue",
      lwd = 2)
-lines(prop_infect, type = "l", 
+lines(obs_billa[location == "Billa Billa", mean(V1), by = assessment_date],
+     col = "blue",
+     lwd = 2)
+lines(prop_infect,
       col = "brown",
       lwd = 2)
 ```
