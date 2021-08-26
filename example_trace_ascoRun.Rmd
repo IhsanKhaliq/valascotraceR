@@ -162,9 +162,14 @@ plot(obs_billa[location == "Billa Billa", mean(V1), by = assessment_date],
 lines(obs_billa[location == "Billa Billa", mean(V1), by = assessment_date],
      #col = "blue",
      lwd = 1)
-lines(prop_infect,
-      #col = "brown",
-      lwd = 2)
+for(i in 1:4) {
+  lines(rbindlist(lapply(billa[[i]], function(x) {
+    data.frame(date = x$i_date,
+               p_inf = nrow(x$infected_coords) / nrow(x$paddock))
+  })),
+  col = "grey40",
+  lwd = 2)
+}
 ```
 
 
