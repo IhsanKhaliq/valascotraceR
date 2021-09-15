@@ -1,7 +1,7 @@
 ---
 title: "Example_run"
-author: "Dr. Paul Melloy"
-date: "06/08/2021"
+author: "Vignette author"
+date: "`r Sys.Date()`"
 output: html_document
 ---
 
@@ -12,12 +12,13 @@ library(callr)
 library(readxl)
 ```
 ## Aims
+
 To validate the ascotraceR spatial model with field data.  
 
 ## Experimental design
-We refer to a paddock as being a spatial unit made up of 1 meter x 1 meter spatial units. 
-A paddock measures a length of 20 meters and width of 20 meters.
-Paddocks are replicated at each site.  
+
+We refer to a paddock as being a spatial unit made up of 1 meter x 1 meter spatial sub-units. A paddock measures a length of 20 meters and width of 20 meters.
+There are four replicate paddocks at each site.  
 
 A quadrant refers to a 1 meter x 1 meter spatial unit inside a paddock.  
 
@@ -35,7 +36,8 @@ Billa_Billa[, local_time := lubridate::dmy_hm(local_time)]
 
 ```
 
-The Billa Billa weather needs formating
+The Billa Billa weather data needs formatting
+
 ```{r}
 # specify the station coordinates of the Billa Billa weather station
 Billa_Billa[, c("lat", "lon") := .(-28.1011505,150.3307084)]
@@ -72,7 +74,7 @@ for(i in 1:4) {
       weather = Billa_Billa,
       paddock_length = 20,
       paddock_width = 20,
-      initial_infection = as.POSIXct("2020-07-17"),
+      initial_infection = as.POSIXct("2020-07-16"),
       sowing_date = as.POSIXct("2020-06-04"),
       harvest_date = as.POSIXct("2020-10-27"),
       time_zone = "Australia/Brisbane",
@@ -81,7 +83,7 @@ for(i in 1:4) {
       spores_per_gp_per_wet_hour = 0.6,
       #min = 0.15 - max = 0.6 (step 0.05)
       latent_period_cdd = 150,
-      primary_infection_intensity = 100,
+      primary_infection_intensity = 200,
       primary_infection_foci = "centre"
     )
   
@@ -96,7 +98,8 @@ Inspect the severity of the paddock
 tracer_plot(billa, 147)
 ```
 
-plot cross sections of the paddock
+Plot cross sections of the paddock. 
+
 ```{r}
 # plot the output of all models with the blue line showing the mean
 # cross section plot at row 10 (x == 10)
@@ -110,10 +113,10 @@ plot(
   lwd = 2,
   col = "blue"
 )
-lines(billa[[1]][[147]][["paddock"]][x == 10, infectious_gp], col = "grey20")
-lines(billa[[2]][[147]][["paddock"]][x == 10, infectious_gp], col = "grey20")
-lines(billa[[3]][[147]][["paddock"]][x == 10, infectious_gp], col = "grey20")
-lines(billa[[4]][[147]][["paddock"]][x == 10, infectious_gp], col = "grey20")
+lines(billa[[1]][[145]][["paddock"]][x == 10, infectious_gp], col = "grey20")
+lines(billa[[2]][[145]][["paddock"]][x == 10, infectious_gp], col = "grey20")
+lines(billa[[3]][[145]][["paddock"]][x == 10, infectious_gp], col = "grey20")
+lines(billa[[4]][[145]][["paddock"]][x == 10, infectious_gp], col = "grey20")
 abline(v= c(1,3,7,10,13,16,19))
 
 # # cross section plot at row 10 (x == 10)
@@ -150,7 +153,7 @@ obs_dat <- setDT(readxl::read_xlsx("data/field_experiment_data.xlsx"))
 ```{r}
 obs_billa <-
   obs_dat[location == "Billa Billa", sum(infected_plants > 0) /
-            .N, by = .(location, assessment_date, plot_number)]
+            .N, by = .(distance, location, assessment_date, plot_number)]
 
 plot(obs_billa[location == "Billa Billa", mean(V1), by = assessment_date],
      pch = 16,
@@ -171,75 +174,132 @@ for(i in 1:4) {
 }
 ```
 
-
 Now to subset the data to Billa Billa and calculate the proportion of infected quadrants.
-
 
 ## Tosari
 
 Import Tosari's weather data
 
 ```{r import-Tosari-weather}
-Tosari <-
-   fread(system.file("extdata",
-            "2020_Tosari_weather_data_ozforecast.csv", package = "ascotraceR"))
+Tosari <- fread("data/2020_Tosari_weather_data_ozforecast.csv")
+
+Tosari[, local_time := lubridate::dmy_hm(local_time)]
+```
+
+
+Pass the data through format weather function 
+
+```{r trace_asco-Tosari}
+# specify the station coordinates of the Billa Billa weather station
+Tosari[, c("lat", "lon") := .(-27.856248, 151.447391)]
+
+Tosari <- format_weather(
+  x = Tosari,
+  POSIXct_time = "local_time",
+  temp = "mean_daily_temp",
+  ws = "ws",
+  wd_sd = "wd_sd",
+  rain = "rain_mm",
+  wd = "wd",
+  station = "location",
+  time_zone = "Australia/Brisbane",
+  lon = "lon",
+  lat = "lat"
+)
+
+# calculate the number of wet_hours in a day
+Tosari[, wet_hours := sum(rain >0), by = .(YYYY,MM,DD)]
+Tosari[rain>0, .(times, rain, wet_hours)]
+```
+
+Run the model 
+
+```{r}
+tosari <- vector(mode = "list", length = 4)
+future::plan("multiprocess")
+for(i in 1:4) {
+  T1 <- Sys.time()
+  tosari[[i]] <-
+    trace_asco(
+      weather = Tosari,
+      paddock_length = 20,
+      paddock_width = 20,
+      initial_infection = as.POSIXct("2020-07-30"),
+      sowing_date = as.POSIXct("2020-06-27"),
+      harvest_date = as.POSIXct("2020-11-05"),
+      time_zone = "Australia/Brisbane",
+      seeding_rate = 40,
+      gp_rr = 0.0065,
+      spores_per_gp_per_wet_hour = 0.6,
+      #min = 0.15 - max = 0.6 (step 0.05)
+      latent_period_cdd = 150,
+      primary_infection_intensity = 200,
+      primary_infection_foci = "centre"
+    )
+  
+  T2 <- Sys.time()
+  cat("\nTime run =", T2 - T1)
+}
+```
+
+Plot cross sections of the paddock. 
+
+```{r}
+# plot the output of all models with the blue line showing the mean
+# cross section plot at row 10 (x == 10)
+plot(
+  apply(as.data.frame(lapply(tosari, function(x) {
+    x[[131]][["paddock"]][x == 10, infectious_gp]
+  })), 1, mean),
+  ylab = "infectious_gp",
+  xlab = "(y) columns",
+  type = "l",
+  lwd = 2,
+  col = "blue"
+)
+lines(tosari[[1]][[131]][["paddock"]][x == 10, infectious_gp], col = "grey20")
+lines(tosari[[2]][[131]][["paddock"]][x == 10, infectious_gp], col = "grey20")
+lines(tosari[[3]][[131]][["paddock"]][x == 10, infectious_gp], col = "grey20")
+lines(tosari[[4]][[131]][["paddock"]][x == 10, infectious_gp], col = "grey20")
+abline(v= c(1,3,7,10,13,16,19))
 
 ```
 
 
-Run the model for Tosari
+Plot the increase in disease over time as the proportion of infected plots for Tosari
 
-```{r trace_asco-Tosari}
-ex_asco <- 
-  r_bg(function() {
-    T1 <- Sys.time()
-    library(ascotraceR)
-    
-    Tosari <-
-      data.table::fread(
-        system.file(
-          "extdata",
-          "2020_Billa_Billa_weather_data_ozforecast.csv",
-          package = "ascotraceR"
-        )
-      )
-    station_data <-
-      system.file("extdata", "stat_dat.csv", package = "ascotraceR")
-    
-    Tosari <- format_weather(
-      x =  Tosari,
-      POSIXct_time = "local_time",
-      temp = "mean_daily_temp",
-      ws = "ws",
-      wd_sd = "wd_sd",
-      rain = "rain_mm",
-      wd = "wd",
-      station = "location",
-      time_zone = "Australia/Brisbane",
-      lonlat_file = station_data
-    )
-    
+```{r}
+prop_infect <-
+  rbindlist(lapply(tosari[[1]], function(x) {
+    data.frame(date = x$i_date,
+               p_inf = nrow(x$infected_coords) / nrow(x$paddock))
+  }))
+```
 
-    
-    ex_at <- trace_asco(
-      weather =  Tosari,
-      paddock_length = 20,
-      paddock_width = 20,
-      initial_infection = as.POSIXct("2020-27-06") + lubridate::ddays(34),
-      sowing_date = as.POSIXct("2020-27-06"),
-      harvest_date = as.POSIXct("2020-11-05") + lubridate::ddays(132) ,
-      time_zone = "Australia/Brisbane",
-      seeding_rate = 40,
-      gp_rr = 0.0065,
-      spores_per_gp_per_wet_hour = 0.22,
-      latent_period_cdd = 150,
-      primary_infection_intensity = 100
-    )
-    
-    save(ex_at, file = "ascotraceR_exOut.rda")
-    T2 <- Sys.time()
-    T2 - T1
-  }, stdout = "tmp/ExampleOut_ta",
-  stderr = "tmp/ExampleError_ta")
+
+Import field observations data for Tosari
+
+```{r}
+obs_tosari <-
+  obs_dat[location == "Tosari", sum(infected_plants > 0) /
+            .N, by = .(distance, location, assessment_date, plot_number)]
+
+plot(obs_tosari[location == "Tosari", mean(V1), by = assessment_date],
+     pch = 16,
+#     col = "blue",
+     lwd = 2,
+     ylab = "Disease progress",
+     xlab = "")
+lines(obs_tosari[location == "Tosari", mean(V1), by = assessment_date],
+     #col = "blue",
+     lwd = 1)
+for(i in 1:4) {
+  lines(rbindlist(lapply(tosari[[i]], function(x) {
+    data.frame(date = x$i_date,
+               p_inf = nrow(x$infected_coords) / nrow(x$paddock))
+  })),
+  col = "grey40",
+  lwd = 2)
+}
 ```
 
