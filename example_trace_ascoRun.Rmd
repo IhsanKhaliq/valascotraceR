@@ -11,6 +11,7 @@ library(data.table)
 library(callr)
 library(readxl)
 ```
+
 ## Aims
 
 To validate the ascotraceR spatial model with field data.  
@@ -95,7 +96,7 @@ for(i in 1:4) {
 
 Inspect the severity of the paddock
 ```{r}
-tracer_plot(billa, 147)
+tracer_plot(billa, 145)
 ```
 
 Plot cross sections of the paddock. 
@@ -105,7 +106,7 @@ Plot cross sections of the paddock.
 # cross section plot at row 10 (x == 10)
 plot(
   apply(as.data.frame(lapply(billa, function(x) {
-    x[[147]][["paddock"]][x == 10, infectious_gp]
+    x[[145]][["paddock"]][x == 10, infectious_gp]
   })), 1, mean),
   ylab = "infectious_gp",
   xlab = "(y) columns",
@@ -135,13 +136,13 @@ abline(v= c(1,3,7,10,13,16,19))
 ```
 
 Plot the increase in disease over time as the proportion of infected plots
+
 ```{r}
 prop_infect <-
   rbindlist(lapply(billa[[1]], function(x) {
     data.frame(date = x$i_date,
                p_inf = nrow(x$infected_coords) / nrow(x$paddock))
   }))
-
 
 ```
 
@@ -159,8 +160,8 @@ plot(obs_billa[location == "Billa Billa", mean(V1), by = assessment_date],
      pch = 16,
 #     col = "blue",
      lwd = 2,
-     ylab = "Disease progress",
-     xlab = "")
+     ylab = "Proportion of infected quadrats",
+     xlab = "Disease progress over time")
 lines(obs_billa[location == "Billa Billa", mean(V1), by = assessment_date],
      #col = "blue",
      lwd = 1)
@@ -174,7 +175,6 @@ for(i in 1:4) {
 }
 ```
 
-Now to subset the data to Billa Billa and calculate the proportion of infected quadrants.
 
 ## Tosari
 
@@ -288,8 +288,8 @@ plot(obs_tosari[location == "Tosari", mean(V1), by = assessment_date],
      pch = 16,
 #     col = "blue",
      lwd = 2,
-     ylab = "Disease progress",
-     xlab = "")
+     ylab = "Proportion of infected quadrats",
+     xlab = "Disease progress over time")
 lines(obs_tosari[location == "Tosari", mean(V1), by = assessment_date],
      #col = "blue",
      lwd = 1)
