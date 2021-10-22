@@ -8,7 +8,7 @@ output: html_document
 ```{r load_libraries}
 library(ascotraceR)
 library(data.table)
-library(callr)
+library(future)
 library(readxl)
 ```
 
