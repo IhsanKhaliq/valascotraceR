@@ -160,16 +160,18 @@ obs_billa <-
   obs_dat[location == "Billa Billa", sum(infected_plants > 0) /
             .N, by = .(distance, location, assessment_date, plot_number)]
 
-plot(obs_billa[location == "Billa Billa", mean(V1), by = assessment_date],
-     pch = 16,
-#     col = "blue",
-     lwd = 2,
-     ylab = "Proportion of infected quadrats",
-     xlab = "Disease progress over time")
+plot(
+  obs_billa[location == "Billa Billa", mean(V1), by = assessment_date],
+  pch = 16,
+  #     col = "blue",
+  lwd = 2,
+  ylab = "Proportion of infected quadrats",
+  xlab = "Disease progress over time"
+)
 lines(obs_billa[location == "Billa Billa", mean(V1), by = assessment_date],
-     #col = "blue",
-     lwd = 1)
-for(i in 1:4) {
+      #col = "blue",
+      lwd = 1)
+for (i in 1:4) {
   lines(rbindlist(lapply(billa[[i]], function(x) {
     data.frame(date = x$i_date,
                p_inf = nrow(x$infected_coords) / nrow(x$paddock))
