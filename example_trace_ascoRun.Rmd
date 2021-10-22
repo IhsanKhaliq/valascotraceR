@@ -41,7 +41,7 @@ The Billa Billa weather data needs formatting
 
 ```{r}
 # specify the station coordinates of the Billa Billa weather station
-Billa_Billa[, c("lat", "lon") := .(-28.1011505,150.3307084)]
+Billa_Billa[, c("lat", "lon") := .(-28.1011505, 150.3307084)]
 
 Billa_Billa <- format_weather(
   x = Billa_Billa,
@@ -58,17 +58,18 @@ Billa_Billa <- format_weather(
 )
 
 # calculate the number of wet_hours in a day
-Billa_Billa[, wet_hours := sum(rain >0), by = .(YYYY,MM,DD)]
-Billa_Billa[rain>0, .(times, rain, wet_hours)]
+Billa_Billa[, wet_hours := sum(rain > 0), by = .(YYYY, MM, DD)]
+Billa_Billa[rain > 0, .(times, rain, wet_hours)]
 ```
 
 First we run the model based on what we discussed.
-I am going to run this in a background process using the package callr.
+I am going to run this in a background process using the package _callr_.
 This frees up the console to continue work while we wait for the model.
+
 ```{r trace_asco-Billa_Billa}
 billa <- vector(mode = "list", length = 4)
-future::plan("multiprocess")
-for(i in 1:4) {
+plan("multisession")
+for (i in 1:4) {
   T1 <- Sys.time()
   billa[[i]] <-
     trace_asco(
