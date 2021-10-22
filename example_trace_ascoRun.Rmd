@@ -92,12 +92,15 @@ for (i in 1:4) {
   T2 <- Sys.time()
   cat("\nTime run =", T2 - T1)
 }
-
 ```
 
-Inspect the severity of the paddock
+Inspect the severity of the paddock sub-quadrats.
+
 ```{r}
-tracer_plot(billa, 145)
+tracer_plot(billa[[1]], 145)
+tracer_plot(billa[[2]], 145)
+tracer_plot(billa[[3]], 145)
+tracer_plot(billa[[4]], 145)
 ```
 
 Plot cross sections of the paddock. 
