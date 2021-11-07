@@ -21,23 +21,23 @@ To validate the ascotraceR spatial model with field data.
 
 ## Experimental design
 
-We refer to a paddock as being a spatial unit made up of 1 meter x 1 meter spatial sub-units. A paddock measures a length of 20 meters and width of 20 meters.
+We refer to a paddock as being a spatial unit made up of 1 meter x 1 meter spatial sub-units.
+A paddock measures a length of 20 meters and width of 20 meters.
 There are four replicate paddocks at each site.  
 
-A quadrant refers to a 1 meter x 1 meter spatial unit inside a paddock.  
+A quadrant refers to a 1 meter x 1 meter spatial unit inside a paddock.
 
-The experiment was conducted at two locations, Billa Billa and Tosari.
+The experiment was conducted at two locations, Billa Billa and Tosari, Queensland, AU.
 
 ## Billa Billa  
 
-Import Billa Billa's weather data
+Import Billa Billa's weather data.
 
 ```{r import_Billa_Billa_weather}
 Billa_Billa <-
    fread("data/2020_Billa_Billa_weather_data_ozforecast.csv")
 
-Billa_Billa[, local_time := lubridate::dmy_hm(local_time)]
-
+Billa_Billa[, local_time := dmy_hm(local_time)]
 ```
 
 The Billa Billa weather data needs formatting
