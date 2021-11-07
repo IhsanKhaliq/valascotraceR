@@ -59,21 +59,18 @@ Billa_Billa <- format_weather(
   lon = "lon",
   lat = "lat"
 )
-
-# calculate the number of wet_hours in a day
-Billa_Billa[, wet_hours := sum(rain > 0), by = .(YYYY, MM, DD)]
-Billa_Billa[rain > 0, .(times, rain, wet_hours)]
 ```
 
 First we run the model based on what we discussed.
-I am going to run this in a background process using the package _callr_.
-This frees up the console to continue work while we wait for the model.
+Because the model is stochastic, we'll run it 20 times and compare the average outputs.
 
 ```{r trace_asco-Billa_Billa}
-billa <- vector(mode = "list", length = 4)
-plan("multisession")
-for (i in 1:4) {
-  T1 <- Sys.time()
+billa <- vector(mode = "list", length = 20)
+time_run <- vector(mode = "numeric", length = length(billa))
+
+plan(multisession)
+for (i in seq_len(20)) {
+  T1 <- proc.time()[[3]]
   billa[[i]] <-
     trace_asco(
       weather = Billa_Billa,
