@@ -5,11 +5,14 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
-```{r load_libraries}
+```{r load_libraries, message=FALSE}
 library(ascotraceR)
+library(lubridate)
 library(data.table)
 library(future)
 library(readxl)
+library(dplyr)
+library(ggplot2)
 ```
 
 ## Aims
@@ -18,23 +21,23 @@ To validate the ascotraceR spatial model with field data.
 
 ## Experimental design
 
-We refer to a paddock as being a spatial unit made up of 1 meter x 1 meter spatial sub-units. A paddock measures a length of 20 meters and width of 20 meters.
+We refer to a paddock as being a spatial unit made up of 1 meter x 1 meter spatial sub-units.
+A paddock measures a length of 20 meters and width of 20 meters.
 There are four replicate paddocks at each site.  
 
-A quadrant refers to a 1 meter x 1 meter spatial unit inside a paddock.  
+A quadrant refers to a 1 meter x 1 meter spatial unit inside a paddock.
 
-The experiment was conducted at two locations, Billa Billa and Tosari.
+The experiment was conducted at two locations, Billa Billa and Tosari, Queensland, AU.
 
 ## Billa Billa  
 
-Import Billa Billa's weather data
+Import Billa Billa's weather data.
 
 ```{r import_Billa_Billa_weather}
 Billa_Billa <-
    fread("data/2020_Billa_Billa_weather_data_ozforecast.csv")
 
-Billa_Billa[, local_time := lubridate::dmy_hm(local_time)]
-
+Billa_Billa[, local_time := dmy_hm(local_time)]
 ```
 
 The Billa Billa weather data needs formatting
@@ -56,21 +59,18 @@ Billa_Billa <- format_weather(
   lon = "lon",
   lat = "lat"
 )
-
-# calculate the number of wet_hours in a day
-Billa_Billa[, wet_hours := sum(rain > 0), by = .(YYYY, MM, DD)]
-Billa_Billa[rain > 0, .(times, rain, wet_hours)]
 ```
 
 First we run the model based on what we discussed.
-I am going to run this in a background process using the package _callr_.
-This frees up the console to continue work while we wait for the model.
+Because the model is stochastic, we'll run it 20 times and compare the average outputs.
 
 ```{r trace_asco-Billa_Billa}
-billa <- vector(mode = "list", length = 4)
-plan("multisession")
-for (i in 1:4) {
-  T1 <- Sys.time()
+billa <- vector(mode = "list", length = 20)
+time_run <- vector(mode = "numeric", length = length(billa))
+
+plan(multisession)
+for (i in seq_len(20)) {
+  T1 <- proc.time()[[3]]
   billa[[i]] <-
     trace_asco(
       weather = Billa_Billa,
@@ -83,60 +83,44 @@ for (i in 1:4) {
       seeding_rate = 40,
       gp_rr = 0.0065,
       spores_per_gp_per_wet_hour = 0.6,
-      #min = 0.15 - max = 0.6 (step 0.05)
       latent_period_cdd = 150,
       primary_infection_intensity = 200,
       primary_infection_foci = "centre"
     )
   
-  T2 <- Sys.time()
-  cat("\nTime run =", T2 - T1)
+  T2 <- proc.time()[[3]]
+  time_run[i] <- T2 - T1
 }
+
+cat("\nAverage model runtime =", mean(time_run))
 ```
 
 Inspect the severity of the paddock sub-quadrats.
 
-```{r}
-tracer_plot(billa[[1]], 145)
-tracer_plot(billa[[2]], 145)
-tracer_plot(billa[[3]], 145)
-tracer_plot(billa[[4]], 145)
+```{r heatmap}
+billa <- rbindlist(lapply(billa, tidy_trace), idcol = TRUE)
+
+ggplot(data = subset(billa, i_day == 145),
+       aes(x = x, y = y, fill = infectious_gp)) +
+  geom_tile() +
+  scale_fill_viridis_c(option = "E",
+                       "Infectious\ngrowing\npoints") +
+  facet_wrap(.id ~ .) +
+  labs(x = "x (m)",
+       y = "y (m)") +
+  theme_classic()
 ```
 
 Plot cross sections of the paddock. 
 
 ```{r}
 # plot the output of all models with the blue line showing the mean
-# cross section plot at row 10 (x == 10)
-plot(
-  apply(as.data.frame(lapply(billa, function(x) {
-    x[[145]][["paddock"]][x == 10, infectious_gp]
-  })), 1, mean),
-  ylab = "infectious_gp",
-  xlab = "(y) columns",
-  type = "l",
-  lwd = 2,
-  col = "blue"
-)
-lines(billa[[1]][[145]][["paddock"]][x == 10, infectious_gp], col = "grey20")
-lines(billa[[2]][[145]][["paddock"]][x == 10, infectious_gp], col = "grey20")
-lines(billa[[3]][[145]][["paddock"]][x == 10, infectious_gp], col = "grey20")
-lines(billa[[4]][[145]][["paddock"]][x == 10, infectious_gp], col = "grey20")
-abline(v= c(1,3,7,10,13,16,19))
+# cross section plot at row 10 (x == 10) on day 145
 
-# # cross section plot at row 10 (x == 10)
-# plot(billa[[147]][["paddock"]][x == 10, infectious_gp] / 40,
-#      ylab = "infectious_gp",
-#      xlab = "(y) columns",
-#      main = "infectious_gp per plant",
-#      type = "l")
-# 
-# # cross section plot at row 10 (x == 10)
-# plot(billa[[147]][["paddock"]][x == 10, infectious_gp/(infectious_gp + susceptible_gp)] / 40,
-#      ylab = "infectious_gp",
-#      xlab = "(y) columns",
-#      main = "percentage infectious_gp per plant",
-#      type = "l")
+ggplot(billa_plot, aes(x = y, y = infectious_gp, colour = Run)) +
+  geom_hex() +
+  scale_fill_viridis_c(option = "E") +
+  theme_classic()
 ```
 
 Plot the increase in disease over time as the proportion of infected plots
