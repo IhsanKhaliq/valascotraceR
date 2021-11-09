@@ -13,6 +13,7 @@ library(future)
 library(readxl)
 library(dplyr)
 library(ggplot2)
+library(patchwork)
 ```
 
 ## Aims
@@ -65,13 +66,14 @@ First we run the model based on what we discussed.
 Because the model is stochastic, we'll run it 20 times and compare the average outputs.
 
 ```{r trace_asco-Billa_Billa}
-billa <- vector(mode = "list", length = 20)
-time_run <- vector(mode = "numeric", length = length(billa))
+billa_list <- vector(mode = "list", length = 20)
+time_run_vec <-
+  vector(mode = "numeric", length = length(billa_list))
 
 plan(multisession)
 for (i in seq_len(20)) {
   T1 <- proc.time()[[3]]
-  billa[[i]] <-
+  billa_list[[i]] <-
     trace_asco(
       weather = Billa_Billa,
       paddock_length = 20,
@@ -89,97 +91,123 @@ for (i in seq_len(20)) {
     )
   
   T2 <- proc.time()[[3]]
-  time_run[i] <- T2 - T1
+  time_run_vec[i] <- sum(T2, -T1)
 }
-
-cat("\nAverage model runtime =", mean(time_run))
 ```
+
+Average model runtime was `r mean(time_run_vec)` for `r length(billa_list)` simulations.
 
 Inspect the severity of the paddock sub-quadrats.
 
 ```{r heatmap}
-billa <- rbindlist(lapply(billa, tidy_trace), idcol = TRUE)
+billa <- rbindlist(lapply(billa_list, tidy_trace), idcol = TRUE)
 
 ggplot(data = subset(billa, i_day == 145),
        aes(x = x, y = y, fill = infectious_gp)) +
   geom_tile() +
   scale_fill_viridis_c(option = "E",
-                       "Infectious\ngrowing\npoints") +
+                       "Infectious growing points") +
   facet_wrap(.id ~ .) +
   labs(x = "x (m)",
        y = "y (m)") +
-  theme_classic()
+  theme_classic() +
+  theme(legend.position = "top") +
+  guides(fill = guide_colorbar(
+    title.position = "top",
+    title.hjust = 0.5,
+    barwidth = unit(20, "lines"),
+    barheight = unit(0.5, "lines")
+  )) +
+  coord_equal()
 ```
 
-Plot cross sections of the paddock. 
+Plot a cross sections of the paddock's y-axis at 10m on the x-axis.
 
-```{r}
-# plot the output of all models with the blue line showing the mean
-# cross section plot at row 10 (x == 10) on day 145
-
-ggplot(billa_plot, aes(x = y, y = infectious_gp, colour = Run)) +
-  geom_hex() +
+```{r plot-billa-cross-section}
+ggplot(subset(billa, x == 10),
+       aes(x = infectious_gp, y = y, colour = .id)) +
+  geom_hex(bins = 25) +
   scale_fill_viridis_c(option = "E") +
-  theme_classic()
+  labs(x = "Infectious growing points at 10m on x-axis",
+       y = "y-axis (m)") +
+  theme_classic() +
+  theme(legend.position = "top") +
+  guides(fill = guide_colorbar(
+    title.position = "top",
+    title.hjust = 0.5,
+    barwidth = unit(20, "lines"),
+    barheight = unit(0.5, "lines")
+  ))
 ```
 
-Plot the increase in disease over time as the proportion of infected plots
+Plot the increase in disease over time as the proportion of infected plots.
 
-```{r}
-prop_infect <-
-  rbindlist(lapply(billa[[1]], function(x) {
-    data.frame(date = x$i_date,
-               p_inf = nrow(x$infected_coords) / nrow(x$paddock))
-  }))
+Taking the data.frame object, mutate it to create a column that indicates whether a quadrat is infected or not, then group by `.id` and `i_date` and calculate the percent infection as the number of infected quadrats per paddock on `i_date` as `infected / number of rows`.
 
+```{r disease_over_time}
+billa <- 
+  billa %>% 
+  mutate(infected = if_else(infectious_gp > 0, TRUE, FALSE, NA)) %>%
+  group_by(i_date) %>% 
+  mutate(p_inf = sum(infected, na.rm = TRUE) / n())
 ```
 
 Import field observations
-```{r}
+```{r import-billa-obs}
 obs_dat <- setDT(readxl::read_xlsx("data/field_experiment_data.xlsx"))
 ```
 
-```{r}
+```{r billa-proportions}
 obs_billa <-
   obs_dat[location == "Billa Billa", sum(infected_plants > 0) /
             .N, by = .(distance, location, assessment_date, plot_number)]
 
-plot(
-  obs_billa[location == "Billa Billa", mean(V1), by = assessment_date],
-  pch = 16,
-  #     col = "blue",
-  lwd = 2,
-  ylab = "Proportion of infected quadrats",
-  xlab = "Disease progress over time"
-)
-lines(obs_billa[location == "Billa Billa", mean(V1), by = assessment_date],
-      #col = "blue",
-      lwd = 1)
-for (i in 1:4) {
-  lines(rbindlist(lapply(billa[[i]], function(x) {
-    data.frame(date = x$i_date,
-               p_inf = nrow(x$infected_coords) / nrow(x$paddock))
-  })),
-  col = "grey40",
-  lwd = 2)
-}
-```
+obs_billa <-
+  obs_billa %>%
+  mutate(assessment_date = as.Date(assessment_date)) %>%
+  group_by(assessment_date) %>%
+  mutate(i_perc = mean(V1))
 
+billa_proportions <-
+  ggplot(obs_billa, aes(x = assessment_date, y = i_perc)) +
+  geom_line(aes(linetype = "Observed")) +
+  geom_line(
+    data = billa,
+    alpha = 0.5,
+    aes(
+      x = i_date,
+      y = p_inf,
+      group = .id,
+      linetype = "Model"
+    ),
+  ) +
+  labs(x = "Assessment Date", y = "Proportion of Infected Quadrats") +
+  theme_classic() +
+  theme(
+    legend.title = element_blank(),
+    legend.spacing.y = unit(0, "mm"),
+    panel.border = element_rect(colour = "black", fill = NA),
+    aspect.ratio = 1,
+    axis.text = element_text(colour = 1, size = 12),
+    legend.background = element_blank(),
+    legend.box.background = element_rect(colour = "black"),
+    legend.position = c(0.25, 0.84)
+  )
+```
 
 ## Tosari
 
-Import Tosari's weather data
+Import Tosari's weather data and format the time as a date object.
 
-```{r import-Tosari-weather}
+```{r tosari-weather-import}
 Tosari <- fread("data/2020_Tosari_weather_data_ozforecast.csv")
 
-Tosari[, local_time := lubridate::dmy_hm(local_time)]
+Tosari[, local_time := dmy_hm(local_time)]
 ```
 
+Pass the data through `format_weather() function from _ascotraceR_.
 
-Pass the data through format weather function 
-
-```{r trace_asco-Tosari}
+```{r tosari-weather-format}
 # specify the station coordinates of the Billa Billa weather station
 Tosari[, c("lat", "lon") := .(-27.856248, 151.447391)]
 
@@ -196,20 +224,18 @@ Tosari <- format_weather(
   lon = "lon",
   lat = "lat"
 )
-
-# calculate the number of wet_hours in a day
-Tosari[, wet_hours := sum(rain >0), by = .(YYYY,MM,DD)]
-Tosari[rain>0, .(times, rain, wet_hours)]
 ```
 
-Run the model 
+Run the model.
 
-```{r}
-tosari <- vector(mode = "list", length = 4)
-future::plan("multiprocess")
-for(i in 1:4) {
+```{r tosari-trace-asco}
+tosari_list <- vector(mode = "list", length = 20)
+time_run_vec <-
+  vector(mode = "numeric", length = length(tosari_list))
+
+for (i in seq_len(length(tosari_list))) {
   T1 <- Sys.time()
-  tosari[[i]] <-
+  tosari_list[[i]] <-
     trace_asco(
       weather = Tosari,
       paddock_length = 20,
@@ -221,51 +247,39 @@ for(i in 1:4) {
       seeding_rate = 40,
       gp_rr = 0.0065,
       spores_per_gp_per_wet_hour = 0.6,
-      #min = 0.15 - max = 0.6 (step 0.05)
       latent_period_cdd = 150,
       primary_infection_intensity = 200,
       primary_infection_foci = "centre"
     )
   
   T2 <- Sys.time()
-  cat("\nTime run =", T2 - T1)
+  time_run_vec[i] <- T2 - T1
 }
 ```
 
-Plot cross sections of the paddock. 
+Average model runtime was `r mean(time_run_vec)` for `r length(tosari_list)` simulations.
 
-```{r}
-# plot the output of all models with the blue line showing the mean
-# cross section plot at row 10 (x == 10)
-plot(
-  apply(as.data.frame(lapply(tosari, function(x) {
-    x[[131]][["paddock"]][x == 10, infectious_gp]
-  })), 1, mean),
-  ylab = "infectious_gp",
-  xlab = "(y) columns",
-  type = "l",
-  lwd = 2,
-  col = "blue"
-)
-lines(tosari[[1]][[131]][["paddock"]][x == 10, infectious_gp], col = "grey20")
-lines(tosari[[2]][[131]][["paddock"]][x == 10, infectious_gp], col = "grey20")
-lines(tosari[[3]][[131]][["paddock"]][x == 10, infectious_gp], col = "grey20")
-lines(tosari[[4]][[131]][["paddock"]][x == 10, infectious_gp], col = "grey20")
-abline(v= c(1,3,7,10,13,16,19))
+```{r plot-tosari-cross-section}
+tosari <- rbindlist(lapply(tosari_list, tidy_trace), idcol = TRUE)
 
+ggplot(data = subset(tosari, i_day == 131),
+       aes(x = x, y = y, fill = infectious_gp)) +
+  geom_tile() +
+  scale_fill_viridis_c(option = "E",
+                       "Infectious growing points") +
+  facet_wrap(.id ~ .) +
+  labs(x = "x (m)",
+       y = "y (m)") +
+  theme_classic() +
+  theme(legend.position = "top") +
+  guides(fill = guide_colorbar(
+    title.position = "top",
+    title.hjust = 0.5,
+    barwidth = unit(20, "lines"),
+    barheight = unit(0.5, "lines")
+  )) +
+  coord_equal()
 ```
-
-
-Plot the increase in disease over time as the proportion of infected plots for Tosari
-
-```{r}
-prop_infect <-
-  rbindlist(lapply(tosari[[1]], function(x) {
-    data.frame(date = x$i_date,
-               p_inf = nrow(x$infected_coords) / nrow(x$paddock))
-  }))
-```
-
 
 Import field observations data for Tosari
 
@@ -273,23 +287,50 @@ Import field observations data for Tosari
 obs_tosari <-
   obs_dat[location == "Tosari", sum(infected_plants > 0) /
             .N, by = .(distance, location, assessment_date, plot_number)]
-
-plot(obs_tosari[location == "Tosari", mean(V1), by = assessment_date],
-     pch = 16,
-#     col = "blue",
-     lwd = 2,
-     ylab = "Proportion of infected quadrats",
-     xlab = "Disease progress over time")
-lines(obs_tosari[location == "Tosari", mean(V1), by = assessment_date],
-     #col = "blue",
-     lwd = 1)
-for(i in 1:4) {
-  lines(rbindlist(lapply(tosari[[i]], function(x) {
-    data.frame(date = x$i_date,
-               p_inf = nrow(x$infected_coords) / nrow(x$paddock))
-  })),
-  col = "grey40",
-  lwd = 2)
-}
 ```
 
+Plot the increase in disease over time as the proportion of infected plots for Tosari
+
+```{r}
+tosari <- 
+  tosari %>% 
+  mutate(infected = if_else(infectious_gp > 0, TRUE, FALSE, NA)) %>%
+  group_by(i_date) %>% 
+  mutate(p_inf = sum(infected, na.rm = TRUE) / n())
+
+obs_tosari <-
+  obs_tosari %>%
+  mutate(assessment_date = as.Date(assessment_date)) %>%
+  group_by(assessment_date) %>%
+  mutate(i_perc = mean(V1))
+
+tosari_proportions <-
+  ggplot(obs_billa, aes(x = assessment_date, y = i_perc)) +
+  geom_line(aes(linetype = "Observed")) +
+  geom_line(
+    data = tosari,
+    alpha = 0.5,
+    aes(
+      x = i_date,
+      y = p_inf,
+      group = .id,
+      linetype = "Model"
+    ),
+  ) +
+  labs(x = "Assessment Date", y = "Proportion of Infected Quadrats") +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    panel.border = element_rect(colour = "black", fill = NA),
+    aspect.ratio = 1,
+    axis.text = element_text(colour = 1, size = 12)
+  )
+```
+
+## Combind the plots of proportion over time
+
+```{r combined-plots, fig.cap = "Observed proportion of diseased sites versus model predictions over time for, A) Billa Billa, Qld and B) Tosari, Qld. Observed data are shown with the dotted line. The model is shown with a solid line. The model line is the mean of 20 stochastic model runs."}
+billa_proportions +
+  tosari_proportions +
+  plot_annotation(tag_levels = 'A')
+```
