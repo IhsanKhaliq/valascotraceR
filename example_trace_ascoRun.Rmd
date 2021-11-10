@@ -82,11 +82,6 @@ for (i in seq_len(20)) {
       sowing_date = as.POSIXct("2020-06-04"),
       harvest_date = as.POSIXct("2020-10-27"),
       time_zone = "Australia/Brisbane",
-      seeding_rate = 40,
-      gp_rr = 0.0065,
-      spores_per_gp_per_wet_hour = 0.6,
-      #min = 0.15 - max = 0.6 (step 0.05)
-      latent_period_cdd = 150,
       primary_inoculum_intensity = 200,
       primary_infection_foci = "centre"
     )
@@ -277,11 +272,6 @@ for (i in seq_len(length(tosari_list))) {
       sowing_date = as.POSIXct("2020-06-27"),
       harvest_date = as.POSIXct("2020-11-05"),
       time_zone = "Australia/Brisbane",
-      seeding_rate = 40,
-      gp_rr = 0.0065,
-      spores_per_gp_per_wet_hour = 0.6,
-      #min = 0.15 - max = 0.6 (step 0.05)
-      latent_period_cdd = 150,
       primary_inoculum_intensity = 200,
       primary_infection_foci = "centre"
     )
