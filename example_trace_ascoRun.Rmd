@@ -82,11 +82,7 @@ for (i in seq_len(20)) {
       sowing_date = as.POSIXct("2020-06-04"),
       harvest_date = as.POSIXct("2020-10-27"),
       time_zone = "Australia/Brisbane",
-      seeding_rate = 40,
-      gp_rr = 0.0065,
-      spores_per_gp_per_wet_hour = 0.6,
-      latent_period_cdd = 150,
-      primary_infection_intensity = 200,
+      primary_inoculum_intensity = 200,
       primary_infection_foci = "centre"
     )
   
@@ -99,15 +95,61 @@ Average model runtime was `r mean(time_run_vec)` for `r length(billa_list)` simu
 
 Inspect the severity of the paddock sub-quadrats.
 
-```{r heatmap}
+```{r billa-heatmap, fig.cap="Heatmap of average infected growing points for 20 model runs for Billa Billa.", message=FALSE}
+# create a single data.table object of the list output from `trace_asco()`
 billa <- rbindlist(lapply(billa_list, tidy_trace), idcol = TRUE)
 
-ggplot(data = subset(billa, i_day == 145),
-       aes(x = x, y = y, fill = infectious_gp)) +
+# create a new object of xy values scaled to match field observations with 0, 0
+# at the middle rather than lower-left and add to `billa` object
+xy_scaled <- CJ(-9:10, -9:10)
+colnames(xy_scaled) <- c("x_scaled", "y_scaled")
+xy_scaled <-
+  xy_scaled %>%
+  mutate(
+    quadrat = case_when(
+      x_scaled == 0 & y_scaled == 0 ~ "F",
+      x_scaled == 0 & y_scaled == 9 ~ "N9",
+      x_scaled == 9 & y_scaled == 9 ~ "NE9",
+      x_scaled == 9 & y_scaled == 0 ~ "E9",
+      x_scaled == 9 & y_scaled == -9 ~ "SE9",
+      x_scaled == 0 & y_scaled == -9 ~ "S9",
+      x_scaled == -9 & y_scaled == -9 ~ "SW9",
+      x_scaled == -9 & y_scaled == 0 ~ "W9",
+      x_scaled == 0 & y_scaled == 0 ~ "F",
+      x_scaled == 0 & y_scaled == 6 ~ "N6",
+      x_scaled == 6 & y_scaled == 6 ~ "NE6",
+      x_scaled == 6 & y_scaled == 0 ~ "E6",
+      x_scaled == 6 & y_scaled == -6 ~ "SE6",
+      x_scaled == 0 & y_scaled == -6 ~ "S6",
+      x_scaled == -6 & y_scaled == -6 ~ "SW6",
+      x_scaled == -6 & y_scaled == 0 ~ "W6",
+      x_scaled == 0 & y_scaled == 0 ~ "F",
+      x_scaled == 0 & y_scaled == 3 ~ "N3",
+      x_scaled == 3 & y_scaled == 3 ~ "NE3",
+      x_scaled == 3 & y_scaled == 0 ~ "E3",
+      x_scaled == 3 & y_scaled == -3 ~ "SE3",
+      x_scaled == 0 & y_scaled == -3 ~ "S3",
+      x_scaled == -3 & y_scaled == -3 ~ "SW3",
+      x_scaled == -3 & y_scaled == 0 ~ "W3",
+      TRUE ~ "other"
+    )
+  )
+
+billa <- cbind(billa, xy_scaled)
+
+billa_summary <- 
+  billa %>% 
+  filter(i_day == 145) %>%
+  group_by(i_date, x_scaled, y_scaled) %>%
+  summarise(infectious_gp = mean(infectious_gp)) %>% 
+  ungroup()
+
+ggplot(data = billa_summary,
+       aes(x = x_scaled, y = y_scaled, fill = infectious_gp)) +
   geom_tile() +
   scale_fill_viridis_c(option = "E",
-                       "Infectious growing points") +
-  facet_wrap(.id ~ .) +
+                       "Infectious growing points",
+                       direction = -1) +
   labs(x = "x (m)",
        y = "y (m)") +
   theme_classic() +
@@ -121,46 +163,33 @@ ggplot(data = subset(billa, i_day == 145),
   coord_equal()
 ```
 
-Plot a cross sections of the paddock's y-axis at 10m on the x-axis.
-
-```{r plot-billa-cross-section}
-ggplot(subset(billa, x == 10),
-       aes(x = infectious_gp, y = y, colour = .id)) +
-  geom_hex(bins = 25) +
-  scale_fill_viridis_c(option = "E") +
-  labs(x = "Infectious growing points at 10m on x-axis",
-       y = "y-axis (m)") +
-  theme_classic() +
-  theme(legend.position = "top") +
-  guides(fill = guide_colorbar(
-    title.position = "top",
-    title.hjust = 0.5,
-    barwidth = unit(20, "lines"),
-    barheight = unit(0.5, "lines")
-  ))
-```
-
 Plot the increase in disease over time as the proportion of infected plots.
 
-Taking the data.frame object, mutate it to create a column that indicates whether a quadrat is infected or not, then group by `.id` and `i_date` and calculate the percent infection as the number of infected quadrats per paddock on `i_date` as `infected / number of rows`.
+Taking the model predictions data frame, filter only the quadrats that were surveyed, mutate it to create a column that indicates whether a quadrat is infected or not, then group by `.id` and `i_date` and calculate the percent infection as the number of infected quadrats per paddock on `i_date` as `infected / number of rows`.
 
-```{r disease_over_time}
+```{r filter-billa-quadrats}
 billa <- 
   billa %>% 
+  filter(quadrat != "other") %>% 
   mutate(infected = if_else(infectious_gp > 0, TRUE, FALSE, NA)) %>%
   group_by(i_date) %>% 
-  mutate(p_inf = sum(infected, na.rm = TRUE) / n())
+  summarise(p_inf = sum(infected) / n())
 ```
 
-Import field observations
+Import field observations for including in graph.
+
 ```{r import-billa-obs}
-obs_dat <- setDT(readxl::read_xlsx("data/field_experiment_data.xlsx"))
+obs_dat <- 
+  setDT(read_xlsx("data/field_experiment_data.xlsx"))
 ```
+
+Create a line graph of the observed disease over time with the model prediction over layed.
+The plot will display the proportion of infected quadrats on day "x".
 
 ```{r billa-proportions}
 obs_billa <-
   obs_dat[location == "Billa Billa", sum(infected_plants > 0) /
-            .N, by = .(distance, location, assessment_date, plot_number)]
+            .N, by = .(distance, location, assessment_date, plot_number, quadrat)]
 
 obs_billa <-
   obs_billa %>%
@@ -173,11 +202,9 @@ billa_proportions <-
   geom_line(aes(linetype = "Observed")) +
   geom_line(
     data = billa,
-    alpha = 0.5,
     aes(
       x = i_date,
       y = p_inf,
-      group = .id,
       linetype = "Model"
     ),
   ) +
@@ -244,11 +271,7 @@ for (i in seq_len(length(tosari_list))) {
       sowing_date = as.POSIXct("2020-06-27"),
       harvest_date = as.POSIXct("2020-11-05"),
       time_zone = "Australia/Brisbane",
-      seeding_rate = 40,
-      gp_rr = 0.0065,
-      spores_per_gp_per_wet_hour = 0.6,
-      latent_period_cdd = 150,
-      primary_infection_intensity = 200,
+      primary_inoculum_intensity = 200,
       primary_infection_foci = "centre"
     )
   
@@ -259,15 +282,25 @@ for (i in seq_len(length(tosari_list))) {
 
 Average model runtime was `r mean(time_run_vec)` for `r length(tosari_list)` simulations.
 
-```{r plot-tosari-cross-section}
-tosari <- rbindlist(lapply(tosari_list, tidy_trace), idcol = TRUE)
+```{r tosari-heatmap, fig.cap="Heatmap of average infected growing points for 20 model runs for Tosari.", message=FALSE}
+tosari <- 
+  rbindlist(lapply(tosari_list, tidy_trace), idcol = TRUE)
 
-ggplot(data = subset(tosari, i_day == 131),
-       aes(x = x, y = y, fill = infectious_gp)) +
+tosari <- cbind(tosari, xy_scaled)
+
+tosari_summary <- 
+  tosari %>% 
+  filter(i_day == 131) %>%
+  group_by(i_date, x_scaled, y_scaled) %>%
+  summarise(infectious_gp = mean(infectious_gp)) %>% 
+  ungroup()
+
+ggplot(data = tosari_summary,
+       aes(x = x_scaled, y = y_scaled, fill = infectious_gp)) +
   geom_tile() +
   scale_fill_viridis_c(option = "E",
-                       "Infectious growing points") +
-  facet_wrap(.id ~ .) +
+                       "Infectious growing points",
+                       direction = -1) +
   labs(x = "x (m)",
        y = "y (m)") +
   theme_classic() +
@@ -283,7 +316,7 @@ ggplot(data = subset(tosari, i_day == 131),
 
 Import field observations data for Tosari
 
-```{r}
+```{r import-tosari-obs}
 obs_tosari <-
   obs_dat[location == "Tosari", sum(infected_plants > 0) /
             .N, by = .(distance, location, assessment_date, plot_number)]
@@ -291,32 +324,25 @@ obs_tosari <-
 
 Plot the increase in disease over time as the proportion of infected plots for Tosari
 
-```{r}
+```{r tosari-proportions}
 tosari <- 
   tosari %>% 
+  filter(quadrat != "other") %>% 
   mutate(infected = if_else(infectious_gp > 0, TRUE, FALSE, NA)) %>%
   group_by(i_date) %>% 
-  mutate(p_inf = sum(infected, na.rm = TRUE) / n())
+  summarise(p_inf = sum(infected, na.rm = TRUE) / n())
 
 obs_tosari <-
   obs_tosari %>%
   mutate(assessment_date = as.Date(assessment_date)) %>%
   group_by(assessment_date) %>%
-  mutate(i_perc = mean(V1))
+  summarise(i_perc = mean(V1))
 
 tosari_proportions <-
-  ggplot(obs_billa, aes(x = assessment_date, y = i_perc)) +
-  geom_line(aes(linetype = "Observed")) +
-  geom_line(
-    data = tosari,
-    alpha = 0.5,
-    aes(
-      x = i_date,
-      y = p_inf,
-      group = .id,
-      linetype = "Model"
-    ),
-  ) +
+  ggplot(tosari, aes(x = i_date, y = p_inf)) +
+  geom_line(aes(linetype = "Model")) +
+  geom_line(data = obs_tosari,
+            aes(x = assessment_date, y = i_perc, linetype = "Observed")) +
   labs(x = "Assessment Date", y = "Proportion of Infected Quadrats") +
   theme_classic() +
   theme(
