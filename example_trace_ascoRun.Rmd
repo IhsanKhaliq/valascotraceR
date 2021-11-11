@@ -1,7 +1,5 @@
 ---
-title: "Example_run"
-author: "Vignette author"
-date: "`r Sys.Date()`"
+title: "Validation of ascotraceR using two paddock sites in southern Queensland"
 output: html_document
 ---
 
