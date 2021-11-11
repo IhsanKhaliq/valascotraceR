@@ -89,6 +89,7 @@ for (i in seq_len(length(time_run_vec))) {
   T2 <- proc.time()[[3]]
   time_run_vec[i] <- sum(T2, -T1)
 }
+plan(sequential)
 ```
 
 Average model runtime was `r mean(time_run_vec)` for `r length(billa_list)` simulations.
