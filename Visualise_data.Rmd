@@ -87,7 +87,8 @@ Import wind direction data and covert wind direction from text to degrees
 
 ```{r}
 wind_dat <-
-  read_excel("data/wind_data_for_wind_rose.xlsx") %>%
+  read_excel("data/wind_data_for_wind_rose.xlsx",
+             col_types = c("date","text", "numeric", "skip", "text")) %>%
   mutate(
     wind_direction = case_when(
       avg_wind_direction == "N" ~ "0",
@@ -125,9 +126,6 @@ wind_dat <-
       TRUE ~ avg_wind_direction
     )
   ) %>%
-  mutate(wind_direction = as.numeric(wind_direction)) %>%
-      mutate(date = dmy(date)) %>%
-  mutate(wind_speed = as.numeric(wind_speed)) %>%
   mutate(location=as.factor(location))
 ```
 
