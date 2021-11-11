@@ -1,7 +1,5 @@
 ---
-title: "Example_run"
-author: "Vignette author"
-date: "`r Sys.Date()`"
+title: "Validation of ascotraceR using two paddock sites in southern Queensland"
 output: html_document
 ---
 
@@ -18,19 +16,21 @@ library(patchwork)
 
 ## Aims
 
-To validate the ascotraceR spatial model with field data.  
+To validate the _ascotraceR_ spatio-temporal model with observed field data.
 
 ## Experimental design
 
 We refer to a paddock as being a spatial unit made up of 1 meter x 1 meter spatial sub-units.
 A paddock measures a length of 20 meters and width of 20 meters.
-There are four replicate paddocks at each site.  
+There are four replicate paddocks at each site.
 
-A quadrant refers to a 1 meter x 1 meter spatial unit inside a paddock.
+A quadrat refers to a 1 meter x 1 meter spatial unit inside a paddock.
 
 The experiment was conducted at two locations, Billa Billa and Tosari, Queensland, AU.
 
-## Billa Billa  
+## Billa Billa
+
+### Billa Billa weather
 
 Import Billa Billa's weather data.
 
@@ -41,9 +41,9 @@ Billa_Billa <-
 Billa_Billa[, local_time := dmy_hm(local_time)]
 ```
 
-The Billa Billa weather data needs formatting
+The Billa Billa weather data needs formatting, to do that we need to use `format_weather()` from _ascotraceR_.
 
-```{r}
+```{r format-billa-weather}
 # specify the station coordinates of the Billa Billa weather station
 Billa_Billa[, c("lat", "lon") := .(-28.1011505, 150.3307084)]
 
@@ -62,8 +62,10 @@ Billa_Billa <- format_weather(
 )
 ```
 
+### Run _ascotraceR_ for Billa Billa
+
 First we run the model based on what we discussed.
-Because the model is stochastic, we'll run it 20 times and compare the average outputs.
+Because the model is stochastic, we'll run it 20 times and compare the average outputs with the observed data.
 
 ```{r trace_asco-Billa_Billa}
 billa_list <- vector(mode = "list", length = 20)
@@ -82,17 +84,23 @@ for (i in seq_len(length(time_run_vec))) {
       sowing_date = as.POSIXct("2020-06-04"),
       harvest_date = as.POSIXct("2020-10-27"),
       time_zone = "Australia/Brisbane",
+      seeding_rate = 40,
+      gp_rr = 0.0065,
+      spores_per_gp_per_wet_hour = 0.6,
+      latent_period_cdd = 150,
       primary_inoculum_intensity = 200,
       primary_infection_foci = "centre"
     )
   
-  T2 <- proc.time()[[3]]
-  time_run_vec[i] <- sum(T2, -T1)
+  T2 <- Sys.time()
+  time_run_vec[i] <- T2 - T1
 }
 plan(sequential)
 ```
 
 Average model runtime was `r mean(time_run_vec)` for `r length(billa_list)` simulations.
+
+### Heatmap of severity on the final day
 
 Inspect the severity of the paddock sub-quadrats.
 
@@ -165,6 +173,8 @@ ggplot(data = billa_summary,
   coord_equal()
 ```
 
+### Disease progress over time
+
 Plot the increase in disease over time as the proportion of infected plots.
 
 Taking the model predictions data frame, filter only the quadrats that were surveyed, mutate it to create a column that indicates whether a quadrat is infected or not, then group by `.id` and `i_date` and calculate the percent infection as the number of infected quadrats per paddock on `i_date` as `infected / number of rows`.
@@ -188,7 +198,7 @@ obs_dat <-
 Create a line graph of the observed disease over time with the model prediction over layered.
 The plot will display the proportion of infected quadrats on day "x".
 
-```{r billa-proportions}
+```{r billa-proportions, fig.cap="Proportion of infected sites over time at Billa Billa. The line represents the mean of 20 stochastic model runs"}
 obs_billa <-
   obs_dat[location == "Billa Billa", sum(infected_plants > 0) /
             .N, by = .(distance, location, assessment_date, plot_number, quadrat)]
@@ -222,9 +232,13 @@ billa_proportions <-
     legend.box.background = element_rect(colour = "black"),
     legend.position = c(0.25, 0.84)
   )
+
+obs_billa
 ```
 
 ## Tosari
+
+### Tosari weather
 
 Import Tosari's weather data and format the time as a date object.
 
@@ -255,7 +269,9 @@ Tosari <- format_weather(
 )
 ```
 
-Run the model.
+### Run _ascotraceR_ for Tosari
+
+Run the model 20 times.
 
 ```{r tosari-trace-asco}
 tosari_list <- vector(mode = "list", length = 20)
@@ -273,6 +289,10 @@ for (i in seq_len(length(tosari_list))) {
       sowing_date = as.POSIXct("2020-06-27"),
       harvest_date = as.POSIXct("2020-11-05"),
       time_zone = "Australia/Brisbane",
+      seeding_rate = 40,
+      gp_rr = 0.0065,
+      spores_per_gp_per_wet_hour = 0.6,
+      latent_period_cdd = 150,
       primary_inoculum_intensity = 200,
       primary_infection_foci = "centre",
       spores_per_gp_per_wet_hour = 0.6
@@ -284,6 +304,8 @@ for (i in seq_len(length(tosari_list))) {
 ```
 
 Average model runtime was `r mean(time_run_vec)` for `r length(tosari_list)` simulations.
+
+### Heatmap of severity on the final day
 
 ```{r tosari-heatmap, fig.cap="Heatmap of average infected growing points for 20 model runs for Tosari.", message=FALSE}
 tosari <- 
@@ -317,6 +339,8 @@ ggplot(data = tosari_summary,
   coord_equal()
 ```
 
+### Disease progress over time
+
 Import field observations data for Tosari
 
 ```{r import-tosari-obs}
@@ -325,9 +349,9 @@ obs_tosari <-
             .N, by = .(distance, location, assessment_date, plot_number)]
 ```
 
-Plot the increase in disease over time as the proportion of infected plots for Tosari
+Plot the increase in disease over time as the proportion of infected quadrats for Tosari, comparing the model runs with the observed values.
 
-```{r tosari-proportions}
+```{r tosari-proportions, fig.cap="Proportion of infected sites over time at Tosari. The line represents the mean of 20 stochastic model runs"}
 tosari <- 
   tosari %>% 
   filter(quadrat != "other") %>% 
@@ -354,11 +378,15 @@ tosari_proportions <-
     aspect.ratio = 1,
     axis.text = element_text(colour = 1, size = 12)
   )
+
+tosari_proportions
 ```
 
 ## Combind the plots of proportion over time
 
-```{r combined-plots, fig.cap = "Observed proportion of diseased sites versus model predictions over time for, A) Billa Billa, Qld and B) Tosari, Qld. Observed data are shown with the dotted line. The model is shown with a solid line. The model line is the mean of 20 stochastic model runs."}
+Using _patchwork_ we can combine the plots for Billa Billa and Tosari into a single figure for publication.
+
+```{r combined-plots, fig.cap = "Observed proportion of diseased sites versus model predictions over time for, A) Billa Billa, Qld and B) Tosari, Qld. Observed data are shown with the dotted line. The model is shown with a solid line. The model line is the mean of 20 stochastic model runs using weather data for each respective site."}
 billa_proportions +
   tosari_proportions +
   plot_annotation(tag_levels = 'A')
