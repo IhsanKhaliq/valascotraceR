@@ -194,7 +194,7 @@ obs_dat <-
   setDT(read_xlsx("data/field_experiment_data.xlsx"))
 ```
 
-Create a line graph of the observed disease over time with the model prediction over layed.
+Create a line graph of the observed disease over time with the model prediction overlayed.
 The plot will display the proportion of infected quadrats on day "x".
 
 ```{r billa-proportions, fig.cap="Proportion of infected sites over time at Billa Billa. The line represents the mean of 20 stochastic model runs"}
@@ -382,7 +382,7 @@ tosari_proportions
 
 ## Combind the plots of proportion over time
 
-Using _patchwork_ we can combind the plots for Billa Billa and Tosari into a single figure for publication.
+Using _patchwork_ we can combine the plots for Billa Billa and Tosari into a single figure for publication.
 
 ```{r combined-plots, fig.cap = "Observed proportion of diseased sites versus model predictions over time for, A) Billa Billa, Qld and B) Tosari, Qld. Observed data are shown with the dotted line. The model is shown with a solid line. The model line is the mean of 20 stochastic model runs using weather data for each respective site."}
 billa_proportions +
