@@ -71,7 +71,7 @@ time_run_vec <-
   vector(mode = "numeric", length = length(billa_list))
 
 plan(multisession)
-for (i in seq_len(20)) {
+for (i in seq_len(length(time_run_vec))) {
   T1 <- proc.time()[[3]]
   billa_list[[i]] <-
     trace_asco(
