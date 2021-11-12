@@ -243,9 +243,21 @@ obs_billa
 Import Tosari's weather data and format the time as a date object.
 
 ```{r tosari-weather-import}
-Tosari <- fread("data/2020_Tosari_weather_data_ozforecast.csv")
+Tosari <- fread("data/Tosari_2020_Goanna_weather.csv")[Time != "",]
 
-Tosari[, local_time := dmy_hm(local_time)]
+# Format time to POSIXct
+Tosari[, local_time := 
+           as.POSIXct(
+             unlist(
+               lapply(strsplit(Time, " "),
+                      function(x) paste(x[2:5],collapse = " "))
+             ),
+    format = "%B %d %Y %T",
+    tz = "Australia/Brisbane")
+       ]
+
+# add station name
+Tosari[ ,location := "tosari"]
 ```
 
 Pass the data through `format_weather() function from _ascotraceR_.
@@ -257,11 +269,10 @@ Tosari[, c("lat", "lon") := .(-27.856248, 151.447391)]
 Tosari <- format_weather(
   x = Tosari,
   POSIXct_time = "local_time",
-  temp = "mean_daily_temp",
-  ws = "ws",
-  wd_sd = "wd_sd",
-  rain = "rain_mm",
-  wd = "wd",
+  temp = "Air Temp",
+  ws = "Avg Wind Speed",
+  rain = "Rain",
+  wd = "Avg Direction",
   station = "location",
   time_zone = "Australia/Brisbane",
   lon = "lon",
