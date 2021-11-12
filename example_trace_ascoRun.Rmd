@@ -258,6 +258,10 @@ Tosari[, local_time :=
 
 # add station name
 Tosari[ ,location := "tosari"]
+
+# Remove erroring dates
+
+Tosari <- Tosari[is.na(`Air Temp`)== FALSE, ]
 ```
 
 Pass the data through `format_weather() function from _ascotraceR_.
