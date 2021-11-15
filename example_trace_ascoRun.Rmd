@@ -20,11 +20,11 @@ To validate the _ascotraceR_ spatio-temporal model with observed field data.
 
 ## Experimental design
 
-We refer to a paddock as being a spatial unit made up of 1 meter x 1 meter spatial sub-units.
-A paddock measures a length of 20 meters and width of 20 meters.
+We refer to a paddock as being a spatial unit made up of 1 metre x 1 metre spatial sub-units.
+A paddock measures a length of 20 metres and width of 20 metres.
 There are four replicate paddocks at each site.
 
-A quadrat refers to a 1 meter x 1 meter spatial unit inside a paddock.
+A quadrat refers to a 1 metre x 1 metre spatial unit inside a paddock.
 
 The experiment was conducted at two locations, Billa Billa and Tosari, Queensland, AU.
 
