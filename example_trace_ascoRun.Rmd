@@ -233,7 +233,7 @@ billa_proportions <-
     legend.position = c(0.25, 0.84)
   )
 
-obs_billa
+billa_proportions
 ```
 
 ## Tosari
