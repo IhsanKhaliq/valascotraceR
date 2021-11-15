@@ -180,11 +180,11 @@ Plot the increase in disease over time as the proportion of infected plots.
 Taking the model predictions data frame, filter only the quadrats that were surveyed, mutate it to create a column that indicates whether a quadrat is infected or not, then group by `.id` and `i_date` and calculate the percent infection as the number of infected quadrats per paddock on `i_date` as `infected / number of rows`.
 
 ```{r filter-billa-quadrats}
-billa <- 
-  billa %>% 
-  filter(quadrat != "other") %>% 
+billa <-
+  billa %>%
+  filter(quadrat != "other") %>%
   mutate(infected = if_else(infectious_gp > 0, TRUE, FALSE, NA)) %>%
-  group_by(i_date) %>% 
+  group_by(i_date) %>%
   summarise(p_inf = sum(infected) / n())
 ```
 
@@ -207,7 +207,7 @@ obs_billa <-
   obs_billa %>%
   mutate(assessment_date = as.Date(assessment_date)) %>%
   group_by(assessment_date) %>%
-  mutate(i_perc = mean(V1))
+  mutate(i_perc = sum(V1 == 1) / n())
 
 billa_proportions <-
   ggplot(obs_billa, aes(x = assessment_date, y = i_perc)) +
@@ -378,7 +378,7 @@ obs_tosari <-
   obs_tosari %>%
   mutate(assessment_date = as.Date(assessment_date)) %>%
   group_by(assessment_date) %>%
-  summarise(i_perc = mean(V1))
+  summarise(i_perc = sum(V1 == 1) / n())
 
 tosari_proportions <-
   ggplot(tosari, aes(x = i_date, y = p_inf)) +
