@@ -111,7 +111,9 @@ billa <- rbindlist(lapply(billa_list, tidy_trace), idcol = TRUE)
 # create a new object of xy values scaled to match field observations with 0, 0
 # at the middle rather than lower-left and add to `billa` object
 xy_scaled <- CJ(-9:10, -9:10)
-colnames(xy_scaled) <- c("x_scaled", "y_scaled")
+xy <- CJ(1:20, 1:20)
+xy_scaled <- cbind(xy_scaled, xy)
+colnames(xy_scaled) <- c("x_scaled", "y_scaled", "x", "y")
 xy_scaled <-
   xy_scaled %>%
   mutate(
@@ -145,14 +147,12 @@ xy_scaled <-
     )
   )
 
-billa <- cbind(billa, xy_scaled)
-
+# create a summary of average infectious growing points by day and quadrat
 billa_summary <- 
   billa %>% 
-  filter(i_day == 145) %>%
-  group_by(i_date, x_scaled, y_scaled) %>%
-  summarise(infectious_gp = sum(infectious_gp)) %>% 
-  ungroup()
+  left_join(xy_scaled, by = c("x", "y")) %>%
+  group_by(i_date, quadrat, x_scaled, y_scaled) %>% 
+  summarise(infectious_gp = mean(infectious_gp))
 
 ggplot(data = billa_summary,
        aes(x = x_scaled, y = y_scaled, fill = infectious_gp)) +
@@ -182,17 +182,16 @@ Taking the model predictions data frame, filter only the quadrats that were surv
 ```{r filter-billa-quadrats}
 billa <-
   billa %>%
+  left_join(xy_scaled, by = c("x", "y")) %>%
   filter(quadrat != "other") %>%
-  mutate(
-    infected = case_when(
-      quadrat != "other" & infectious_gp > 0 ~ 1,
-      quadrat != "other" & infectious_gp <= 0 ~ 0 )
-  ) %>%
-  group_by(i_date) %>%
-  summarise(p_inf = sum(infected == 1) / n())
+  group_by(i_date, quadrat) %>% 
+  summarise(infectious_gp = mean(infectious_gp)) %>% 
+  mutate(infected = if_else(infectious_gp > 0, TRUE, FALSE, NA)) %>%
+  group_by(i_date) %>% 
+  summarise(p_inf = sum(infected) / n())
 ```
 
-Import field observations for including in graph.
+Import field observations from Billa Billa for including in graph.
 
 ```{r import-billa-obs}
 obs_dat <- 
@@ -202,7 +201,7 @@ obs_dat <-
 Create a line graph of the observed disease over time with the model prediction over layered.
 The plot will display the proportion of infected quadrats on day "x".
 
-```{r billa-proportions, fig.cap="Proportion of infected sites over time at Billa Billa. The line represents the mean of 20 stochastic model runs"}
+```{r billa-proportions, fig.cap="Proportion of infected quadrats over time at Billa Billa. The line represents the mean of 20 stochastic model runs"}
 obs_billa <-
   obs_dat %>%
   filter(location == "Billa Billa") %>%
@@ -211,6 +210,7 @@ obs_billa <-
 obs_billa <-
   obs_billa %>%
   mutate(assessment_date = as.Date(assessment_date)) %>%
+  group_by(quadrat) %>% 
   group_by(assessment_date) %>%
   summarise(i_perc = sum(presence == 1) / n())
 
@@ -358,7 +358,7 @@ ggplot(data = tosari_summary,
 
 ### Disease progress over time
 
-Import field observations data for Tosari
+Import field observations data for Tosari.
 
 ```{r import-tosari-obs}
 obs_tosari <-
@@ -369,16 +369,16 @@ obs_tosari <-
 
 Plot the increase in disease over time as the proportion of infected quadrats for Tosari, comparing the model runs with the observed values.
 
-```{r tosari-proportions, fig.cap="Proportion of infected sites over time at Tosari. The line represents the mean of 20 stochastic model runs"}
+```{r tosari-proportions, fig.cap="Proportion of infected quadrats over time at Tosari. The line represents the mean of 20 stochastic model runs"}
 tosari <- 
   tosari %>% 
-  filter(quadrat != "other") %>% 
-  mutate(infected = case_when(
-      quadrat != "other" & infectious_gp > 0 ~ 1,
-      quadrat != "other" & infectious_gp <= 0 ~ 0 )
-  ) %>%
+  left_join(xy_scaled, by = c("x", "y")) %>%
+  filter(quadrat != "other") %>%
+  group_by(i_date, quadrat) %>% 
+  summarise(infectious_gp = mean(infectious_gp)) %>% 
+  mutate(infected = if_else(infectious_gp > 0, TRUE, FALSE, NA)) %>%
   group_by(i_date) %>% 
- summarise(p_inf = sum(infected == 1) / n())
+  summarise(p_inf = sum(infected) / n())
 
 obs_tosari <-
   obs_tosari %>%
