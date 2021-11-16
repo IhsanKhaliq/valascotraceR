@@ -151,7 +151,7 @@ billa_summary <-
   billa %>% 
   filter(i_day == 145) %>%
   group_by(i_date, x_scaled, y_scaled) %>%
-  summarise(infectious_gp = mean(infectious_gp)) %>% 
+  summarise(infectious_gp = sum(infectious_gp)) %>% 
   ungroup()
 
 ggplot(data = billa_summary,
@@ -332,7 +332,7 @@ tosari_summary <-
   tosari %>% 
   filter(i_day == 131) %>%
   group_by(i_date, x_scaled, y_scaled) %>%
-  summarise(infectious_gp = mean(infectious_gp)) %>% 
+  summarise(infectious_gp = sum(infectious_gp)) %>% 
   ungroup()
 
 ggplot(data = tosari_summary,
