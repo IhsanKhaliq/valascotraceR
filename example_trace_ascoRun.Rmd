@@ -100,7 +100,7 @@ toc()
 parallel::stopCluster(cl = my_cluster)
 ```
 
-### Heatmap of severity on the final day
+### Heatmap of severity
 
 Inspect the severity of the paddock sub-quadrats.
 
@@ -325,20 +325,17 @@ toc()
 parallel::stopCluster(cl = my_cluster)
 ```
 
-### Heatmap of severity on the final day
+### Heatmap of severity
 
 ```{r tosari-heatmap, fig.cap="Heatmap of average infected growing points for 20 model runs for Tosari.", message=FALSE}
 tosari <- 
   rbindlist(lapply(tosari_list, tidy_trace), idcol = TRUE)
 
-tosari <- cbind(tosari, xy_scaled)
-
-tosari_summary <- 
-  tosari %>% 
-  filter(i_day == 131) %>%
-  group_by(i_date, x_scaled, y_scaled) %>%
-  summarise(infectious_gp = sum(infectious_gp)) %>% 
-  ungroup()
+tosari_summary <-
+  tosari %>%
+  left_join(xy_scaled, by = c("x", "y")) %>%
+  group_by(i_date, quadrat, x_scaled, y_scaled) %>%
+  summarise(infectious_gp = mean(infectious_gp))
 
 ggplot(data = tosari_summary,
        aes(x = x_scaled, y = y_scaled, fill = infectious_gp)) +
