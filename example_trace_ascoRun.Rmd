@@ -183,9 +183,13 @@ Taking the model predictions data frame, filter only the quadrats that were surv
 billa <-
   billa %>%
   filter(quadrat != "other") %>%
-  mutate(infected = if_else(infectious_gp > 0, TRUE, FALSE, NA)) %>%
+  mutate(
+    infected = case_when(
+      quadrat != "other" & infectious_gp > 0 ~ 1,
+      quadrat != "other" & infectious_gp <= 0 ~ 0 )
+  ) %>%
   group_by(i_date) %>%
-  summarise(p_inf = sum(infected) / n())
+  summarise(p_inf = sum(infected == 1) / n())
 ```
 
 Import field observations for including in graph.
@@ -200,14 +204,15 @@ The plot will display the proportion of infected quadrats on day "x".
 
 ```{r billa-proportions, fig.cap="Proportion of infected sites over time at Billa Billa. The line represents the mean of 20 stochastic model runs"}
 obs_billa <-
-  obs_dat[location == "Billa Billa", sum(infected_plants > 0) /
-            .N, by = .(distance, location, assessment_date, plot_number, quadrat)]
+  obs_dat %>%
+  filter(location == "Billa Billa") %>%
+  mutate(presence=ifelse(infected_plants > 0, 1, 0))
 
 obs_billa <-
   obs_billa %>%
   mutate(assessment_date = as.Date(assessment_date)) %>%
   group_by(assessment_date) %>%
-  mutate(i_perc = sum(V1 == 1) / n())
+  summarise(i_perc = sum(presence == 1) / n())
 
 billa_proportions <-
   ggplot(obs_billa, aes(x = assessment_date, y = i_perc)) +
@@ -360,8 +365,9 @@ Import field observations data for Tosari
 
 ```{r import-tosari-obs}
 obs_tosari <-
-  obs_dat[location == "Tosari", sum(infected_plants > 0) /
-            .N, by = .(distance, location, assessment_date, plot_number)]
+  obs_dat %>%
+  filter(location == "Tosari") %>%
+  mutate(presence=ifelse(infected_plants > 0, 1, 0))
 ```
 
 Plot the increase in disease over time as the proportion of infected quadrats for Tosari, comparing the model runs with the observed values.
@@ -370,15 +376,18 @@ Plot the increase in disease over time as the proportion of infected quadrats fo
 tosari <- 
   tosari %>% 
   filter(quadrat != "other") %>% 
-  mutate(infected = if_else(infectious_gp > 0, TRUE, FALSE, NA)) %>%
+  mutate(infected = case_when(
+      quadrat != "other" & infectious_gp > 0 ~ 1,
+      quadrat != "other" & infectious_gp <= 0 ~ 0 )
+  ) %>%
   group_by(i_date) %>% 
-  summarise(p_inf = sum(infected, na.rm = TRUE) / n())
+ summarise(p_inf = sum(infected == 1) / n())
 
 obs_tosari <-
   obs_tosari %>%
   mutate(assessment_date = as.Date(assessment_date)) %>%
   group_by(assessment_date) %>%
-  summarise(i_perc = sum(V1 == 1) / n())
+  summarise(i_perc = sum(presence == 1) / n())
 
 tosari_proportions <-
   ggplot(tosari, aes(x = i_date, y = p_inf)) +
