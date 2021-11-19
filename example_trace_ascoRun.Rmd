@@ -14,6 +14,8 @@ library(dplyr)
 library(ggplot2)
 library(patchwork)
 library(tictoc)
+library(Metrics)
+library(pROC)
 ```
 
 ## Aims
@@ -241,6 +243,13 @@ billa_proportions <-
 billa_proportions
 ```
 
+
+
+```{r CCC-Billa-Billa}
+epiR::epi.ccc(observed, predicted)
+
+```
+
 ## Tosari
 
 ### Tosari weather
@@ -412,3 +421,95 @@ billa_proportions +
   tosari_proportions +
   plot_annotation(tag_levels = 'A')
 ```
+
+### Combined quantitative validation for both locations
+
+
+```{r}
+# For observations, the observed proportion of infected quadrats for Tosari and Billa Billa for each assessment date can be accessed  via `obs_tosari$i_perc` and  `obs_billa$i_perc`
+
+# For predictions, the model gives the output for the entire season. Since disease assessments were made ten times in Billa Billa and eight times in Tosari, predictions needs to be extracted for those days 
+
+# Extract predictions for Tosari for the corresponding observation assessment date
+tosari$p_inf[[34]]
+tosari$p_inf[[49]]
+tosari$p_inf[[62]]
+tosari$p_inf[[76]]
+tosari$p_inf[[91]]
+tosari$p_inf[[105]]
+tosari$p_inf[[119]]
+tosari$p_inf[[132]]
+
+# combine into a single vector
+predicted_tosari <- c(0.04, 0.04, 0.48, 0.92, 0.92, 0.92, 0.92, 0.92)
+
+
+# Extract predictions for Billa Billa for the corresponding observation assessment date
+billa$p_inf[[29]]
+billa$p_inf[[43]]
+billa$p_inf[[57]]
+billa$p_inf[[71]]
+billa$p_inf[[84]]
+billa$p_inf[[99]]
+billa$p_inf[[113]]
+billa$p_inf[[126]]
+billa$p_inf[[140]]
+billa$p_inf[[145]]
+
+# Combine into a single vector
+predicted_billa <- c(0, 0.04, 0.04, 0.52, 0.6, 0.8, 0.8, 0.8, 0.8, 0.8)
+```
+
+I have put the above data into a spreadsheet to make a table for the ms, so I'll import that 
+```{r combined- quantitative validation}
+# import observed and predicted proportions data 
+dat <- read_excel("data/proportions_obs_pred_data.xlsx") %>%
+  mutate(observed_proportions = as.numeric(observed_proptions)) %>%
+  mutate(predicted_proportions = as.numeric(predicted_proportions)) %>%
+  mutate(assessment_number =  as.integer(assessment_number))
+
+```
+
+
+### Room mean squared error (RMSE)
+
+RMSE is used to measure the differences between values predicted by a model and the values observed. RMSE is scale dependent, which means comparisons across different types of data would be invalid because the measure is dependent on the scale of the numbers used. Higher RMSE value indicate higher prediction error. RMSE value is 0.36. RMSE value ranges from 0 - 1. The model is a better fit if the value is closer to zero
+
+
+```{r}
+RMSE <- rmse(dat$predicted_proportions, dat$observed_proportions)
+RMSE
+```
+
+### Concordance correlation coefficient (CCC)
+
+CCC is a metric of both consistency/correlation and accuracy, while RMSE is strictly for accuracy. CCC is used to determine an agreement for a CONTINEOUS measure obtained by two methods (e.g., observation and prediction). There is no assumption about data distribution, i.e., data does not need to be normally distributed. It is better than Pearson's correlation, which ignores bias that might exist between observed and the predicted values. Pearson's correlation measures linearity, while CCC measures an agreement between prediction and an observation. It's also better than paired t test, which merely test whether the mean difference is significantly different from zero, but doesn't provide an evidence that there is an agreement between means. The value ranges from 0 - 1. Value closer to 1 represents a better fit
+
+
+```{r}
+CCC <- epi.ccc(dat$predicted_proportions, dat$observed_proportions, ci = "z-transform", conf.level = 0.95)
+CCC
+```
+
+
+### Receiver Operating Characteristic Curve (ROC)
+
+ROC is used to measure the model ability to distinguish between the positive predictions (outcome of interest) and negative predictions (all other outcomes)
+```{r}
+# Create a ROC curve
+ROC <- roc(dat$predicted_proportions, dat$observed_proportions)
+ROC
+
+# plot the ROC curve
+plot(ROC, col = "blue")
+```
+
+
+### Area under the ROC curve
+
+The ROC measure the area under the ROC curve. A perfect model has an AUC of 1, whereas an AUC value of 0.5 indicates that the model is no better than a random chance
+
+```{r auc}
+auc(ROC)
+```
+
