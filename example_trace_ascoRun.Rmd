@@ -244,12 +244,6 @@ billa_proportions
 ```
 
 
-
-```{r CCC-Billa-Billa}
-epiR::epi.ccc(observed, predicted)
-
-```
-
 ## Tosari
 
 ### Tosari weather
