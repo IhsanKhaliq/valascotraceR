@@ -22,7 +22,8 @@ For the entire duration of the experiment, meteorological data was recorded by a
 
 In order to validate the model, the model was run with the same start and end dates, field size (20 x 20 m), and seeding rate (40 seeds per m^2) as those of field experiments. The model was run with the weather data recorded at both locations, and the dates of initial infection and number of infected quadrats observed at the time of initial infection were set as observed in the field. All data from this work are included in this repository, and the code used in the statistical analyses and data visualisation is available to run in R Markdown vignettes, including extra instruction for which we did not have space in the paper
 
-The *ascotraceR* model is adapted from a model developed by [(Diggle *et al.*2002)](https://doi.org/10.1094/PHYTO.2002.92.10.1110) for simulating the
+The *ascotraceR* model is adapted from a model developed by [(Diggle *et al.*
+2002)](https://doi.org/10.1094/PHYTO.2002.92.10.1110) for simulating the
 spread of anthracnose in a lupin field
 
 ## Reference
