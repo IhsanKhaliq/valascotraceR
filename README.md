@@ -8,7 +8,7 @@ developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.re
 [![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://www.tidyverse.org/lifecycle/#stable) 
 <!-- badges: end -->
 
-# valascotraceR: Validation of a weather driven model to simulate the spread of Ascochyta blight in chickpea over a growing season
+# valascotraceR: Validation of the ascotraceR model to simulate the spread of Ascochyta blight in chickpea over a growing season
 
 The goal of of *valascotraceR* is validate the *ascotraceR* model with independent field data. The model was tested with data from field experiments in which the spatiotemporal spread of Ascochyta blight was investigated from primary infection foci in a susceptible chickpea cultivar (Kyabra) at two different locations: Billa Billa (-28.1011505, 150.3307084) and Tosari (-27.856248, 151.447391), Queensland, Australia. The trial site at both locations had not had chickpea planted on them for over four years, and PreDicta®B tests were conducted to ensure the trial sites were free of _A. rabiei_ DNA. 
 
