@@ -20,17 +20,13 @@ library(pROC)
 
 ## Aims
 
-To validate the _ascotraceR_ spatio-temporal model with observed field data.
+To validate the _ascotraceR_ spatio-temporal model with observed field data at two different locations.
 
 ## Experimental design
 
-We refer to a paddock as being a spatial unit made up of 1 metre x 1 metre spatial sub-units.
-A paddock measures a length of 20 metres and width of 20 metres.
-There are four replicate paddocks at each site.
+The experiments were conducted at two locations, Billa Billa and Tosari, Queensland, Australia. At each location, four replicate plots of disease free seed _Kyabra_ were sown in 20 m x 20 m plots on 25 cm row spacing with a seeding rate of 40 seeds per square metre. There was a 4.5 m gap between each replicate plots–the gap was sown to wheat buffer to prevent disease spread among chickpea plots.
+To investigate the spatiotemporal development of Ascochyta blight, each plot was subdivided into a total of 24 observation quadrats at the distances of 3, 6 and 9 m (there were 8 observation quadrats at each distance), marked out at each corner with white pin markers, in a concentric arrangement around the primary infection foci. Each quadrat was assessed for the presence/absence of disease at fortnightly intervals. 
 
-A quadrat refers to a 1 metre x 1 metre spatial unit inside a paddock.
-
-The experiment was conducted at two locations, Billa Billa and Tosari, Queensland, AU.
 
 ## Billa Billa
 
@@ -45,7 +41,7 @@ Billa_Billa <-
 Billa_Billa[, local_time := dmy_hm(local_time)]
 ```
 
-The Billa Billa weather data needs formatting, to do that we need to use `format_weather()` from _ascotraceR_.
+The Billa Billa weather data needs formatting. To do that, we need to use `format_weather()` from _ascotraceR_.
 
 ```{r format-billa-weather}
 # specify the station coordinates of the Billa Billa weather station
@@ -68,7 +64,6 @@ Billa_Billa <- format_weather(
 
 ### Run _ascotraceR_ for Billa Billa
 
-First we run the model based on what we discussed.
 Because the model is stochastic, we'll run it 20 times and compare the average outputs with the observed data.
 
 ```{r trace_asco-Billa_Billa}
@@ -104,7 +99,7 @@ parallel::stopCluster(cl = my_cluster)
 
 ### Heatmap of severity
 
-Inspect the severity of the paddock sub-quadrats.
+Inspect the severity of the observation quadrats.
 
 ```{r billa-heatmap, fig.cap="Heatmap of average infected growing points for 20 model runs for Billa Billa.", message=FALSE}
 # create a single data.table object of the list output from `trace_asco()`
@@ -177,7 +172,7 @@ ggplot(data = billa_summary,
 
 ### Disease progress over time
 
-Plot the increase in disease over time as the proportion of infected plots.
+Plot the increase in disease over space and time as the proportion of infected quadrats.
 
 Taking the model predictions data frame, filter only the quadrats that were surveyed, mutate it to create a column that indicates whether a quadrat is infected or not, then group by `.id` and `i_date` and calculate the percent infection as the number of infected quadrats per paddock on `i_date` as `infected / number of rows`.
 
@@ -193,14 +188,14 @@ billa <-
   summarise(p_inf = sum(infected) / n())
 ```
 
-Import field observations from Billa Billa for including in graph.
+Import Billa Billa's field observations data to include in the graph.
 
 ```{r import-billa-obs}
 obs_dat <- 
   setDT(read_xlsx("data/field_experiment_data.xlsx"))
 ```
 
-Create a line graph of the observed disease over time with the model prediction over layered.
+Create a line graph of the observed disease progress over time & space with the model prediction over layered.
 The plot will display the proportion of infected quadrats on day "x".
 
 ```{r billa-proportions, fig.cap="Proportion of infected quadrats over time at Billa Billa. The line represents the mean of 20 stochastic model runs"}
@@ -359,9 +354,9 @@ ggplot(data = tosari_summary,
   coord_equal()
 ```
 
-### Disease progress over time
+### Disease progress over time & space
 
-Import field observations data for Tosari.
+Import Tosari's field observations data.
 
 ```{r import-tosari-obs}
 obs_tosari <-
@@ -370,7 +365,7 @@ obs_tosari <-
   mutate(presence=ifelse(infected_plants > 0, 1, 0))
 ```
 
-Plot the increase in disease over time as the proportion of infected quadrats for Tosari, comparing the model runs with the observed values.
+Plot the disease progress over time & space as the proportion of infected quadrats for Tosari, comparing the model runs with the observed values.
 
 ```{r tosari-proportions, fig.cap="Proportion of infected quadrats over time at Tosari. The line represents the mean of 20 stochastic model runs"}
 tosari <- 
@@ -406,7 +401,7 @@ tosari_proportions <-
 tosari_proportions
 ```
 
-## Combind the plots of proportion over time
+## Combine plots 
 
 Using _patchwork_ we can combine the plots for Billa Billa and Tosari into a single figure for publication.
 
@@ -416,7 +411,7 @@ billa_proportions +
   plot_annotation(tag_levels = 'A')
 ```
 
-### Combined quantitative validation for both locations
+### Quantitative validation of the model for both locations
 
 
 ```{r}
@@ -470,7 +465,7 @@ dat <- read_excel("data/proportions_obs_pred_data.xlsx") %>%
 RMSE is used to measure the differences between values predicted by a model and the values observed. RMSE is scale dependent, which means comparisons across different types of data would be invalid because the measure is dependent on the scale of the numbers used. Higher RMSE value indicate higher prediction error. RMSE value is 0.36. RMSE value ranges from 0 - 1. The model is a better fit if the value is closer to zero
 
 
-```{r}
+```{r RMSE}
 RMSE <- rmse(dat$predicted_proportions, dat$observed_proportions)
 RMSE
 ```
@@ -480,7 +475,7 @@ RMSE
 CCC is a metric of both consistency/correlation and accuracy, while RMSE is strictly for accuracy. CCC is used to determine an agreement for a CONTINEOUS measure obtained by two methods (e.g., observation and prediction). There is no assumption about data distribution, i.e., data does not need to be normally distributed. It is better than Pearson's correlation, which ignores bias that might exist between observed and the predicted values. Pearson's correlation measures linearity, while CCC measures an agreement between prediction and an observation. It's also better than paired t test, which merely test whether the mean difference is significantly different from zero, but doesn't provide an evidence that there is an agreement between means. The value ranges from 0 - 1. Value closer to 1 represents a better fit
 
 
-```{r}
+```{r CCC}
 CCC <- epi.ccc(dat$predicted_proportions, dat$observed_proportions, ci = "z-transform", conf.level = 0.95)
 CCC
 ```
@@ -489,7 +484,7 @@ CCC
 ### Receiver Operating Characteristic Curve (ROC)
 
 ROC is used to measure the model ability to distinguish between the positive predictions (outcome of interest) and negative predictions (all other outcomes)
-```{r}
+```{r ROC}
 # Create a ROC curve
 ROC <- roc(dat$predicted_proportions, dat$observed_proportions)
 ROC
