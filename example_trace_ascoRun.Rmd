@@ -90,7 +90,6 @@ billa_list <-
       spores_per_gp_per_wet_hour = 0.6,
       latent_period_cdd = 150,
       primary_inoculum_intensity = 200,
-      initial_inoculum_intensity = 1,
       primary_infection_foci = "centre"
     )
   }
