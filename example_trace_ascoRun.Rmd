@@ -319,23 +319,6 @@ tosari_summary <-
   group_by(i_date, quadrat, x_scaled, y_scaled) %>%
   summarise(infectious_gp = mean(infectious_gp))
 
-ggplot(data = tosari_summary,
-       aes(x = x_scaled, y = y_scaled, fill = infectious_gp)) +
-  geom_tile() +
-  scale_fill_viridis_c(option = "E",
-                       "Infectious growing points",
-                       direction = -1) +
-  labs(x = "x (m)",
-       y = "y (m)") +
-  theme_classic() +
-  theme(legend.position = "top") +
-  guides(fill = guide_colorbar(
-    title.position = "top",
-    title.hjust = 0.5,
-    barwidth = unit(20, "lines"),
-    barheight = unit(0.5, "lines")
-  )) +
-  coord_equal()
 ```
 
 ### Disease progress over time & space
