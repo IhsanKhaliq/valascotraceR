@@ -16,6 +16,7 @@ library(patchwork)
 library(tictoc)
 library(Metrics)
 library(pROC)
+library(epiR)
 ```
 
 ## Aims
