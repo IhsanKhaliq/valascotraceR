@@ -98,11 +98,12 @@ toc()
 parallel::stopCluster(cl = my_cluster)
 ```
 
-### Heatmap of severity
+### Sample relevant quadrats for quantitative model validation
 
-Inspect the severity of the observation quadrats.
+The model predicted disease for the entire 20 x 20 m plots (i.e., the entire paddock). Since spatial and temporal disease progress in the field was observed only in selected quadrats (24 observation quadrats), we'll sample the model's predictions for the corrosponding 24 quadrats to compare the model prediction with the observed data from the field
 
-```{r billa-heatmap, fig.cap="Heatmap of average infected growing points for 20 model runs for Billa Billa.", message=FALSE}
+
+```{r billa-quadrats-selection}
 # create a single data.table object of the list output from `trace_asco()`
 billa <- rbindlist(lapply(billa_list, tidy_trace), idcol = TRUE)
 
@@ -155,8 +156,6 @@ billa_summary <-
 ```
 
 ### Disease progress over time
-
-Plot the increase in disease over space and time as the proportion of infected quadrats.
 
 Taking the model predictions data frame, filter only the quadrats that were surveyed, mutate it to create a column that indicates whether a quadrat is infected or not, then group by `.id` and `i_date` and calculate the percent infection as the number of infected quadrats per paddock on `i_date` as `infected / number of rows`.
 
@@ -307,7 +306,7 @@ toc()
 parallel::stopCluster(cl = my_cluster)
 ```
 
-### Heatmap of severity
+### Create data summary
 
 ```{r tosari-heatmap, fig.cap="Heatmap of average infected growing points for 20 model runs for Tosari.", message=FALSE}
 tosari <- 
