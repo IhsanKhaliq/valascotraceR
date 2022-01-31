@@ -64,10 +64,10 @@ Billa_Billa <- format_weather(
 
 ### Run _ascotraceR_ for Billa Billa
 
-Because the model is stochastic, we'll run it 20 times and compare the average outputs with the observed data.
+Since the model is stochastic, we'll run it 20 times and compare the average outputs with the observed data.
 
 ```{r trace_asco-Billa_Billa}
-billa_list <- vector(mode = "list", length = 4)
+billa_list <- vector(mode = "list", length = 20)
 
 n_cores <- 4
 #create the cluster
@@ -430,7 +430,7 @@ tosari$p_inf[[119]]
 tosari$p_inf[[132]]
 
 # combine into a single vector
-predicted_tosari <- c(0.04, 0.04, 0.44, 0.64, 0.64, 0.64, 0.64, 0.64)
+predicted_tosari <- c(0.04, 0.04, 0.4, 0.72, 0.72, 0.72, 0.72, 0.72)
 
 
 # Extract predictions for Billa Billa for the corresponding observation assessment date
@@ -446,7 +446,7 @@ billa$p_inf[[140]]
 billa$p_inf[[145]]
 
 # Combine into a single vector
-predicted_billa <- c(0, 0.04, 0.04, 0.16, 0.24, 0.44, 0.44, 0.52, 0.52, 0.52)
+predicted_billa <- c(0, 0.04, 0.04, 0.4, 0.6, 0.8, 0.8, 0.8, 0.8, 0.8)
 ```
 
 I have put the above data into a spreadsheet to make a table for the ms, so I'll import that 
