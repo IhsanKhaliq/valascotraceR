@@ -430,7 +430,7 @@ tosari$p_inf[[119]]
 tosari$p_inf[[132]]
 
 # combine into a single vector
-predicted_tosari <- c(0.04, 0.04, 0.48, 0.92, 0.92, 0.92, 0.92, 0.92)
+predicted_tosari <- c(0.04, 0.04, 0.44, 0.64, 0.64, 0.64, 0.64, 0.64)
 
 
 # Extract predictions for Billa Billa for the corresponding observation assessment date
@@ -446,7 +446,7 @@ billa$p_inf[[140]]
 billa$p_inf[[145]]
 
 # Combine into a single vector
-predicted_billa <- c(0, 0.04, 0.04, 0.52, 0.6, 0.8, 0.8, 0.8, 0.8, 0.8)
+predicted_billa <- c(0, 0.04, 0.04, 0.16, 0.24, 0.44, 0.44, 0.52, 0.52, 0.52)
 ```
 
 I have put the above data into a spreadsheet to make a table for the ms, so I'll import that 
